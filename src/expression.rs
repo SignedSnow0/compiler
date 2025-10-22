@@ -21,17 +21,20 @@ pub enum Factor {
 }
 
 impl Token for Exp {
-    fn parse(string: String) -> Option<(Exp, String)> {
+    fn parse(mut string: String) -> Option<(Exp, String)> {
         println!("Parsing exp from {}", string);
-        let (mut left, string) = match Term::from_string(string) {
+        string.trim_good();
+        let (mut left, mut string) = match Term::from_string(string) {
             Some(res) => (Exp::Term(Box::new(res.0)), res.1),
             None => return None,
         };
 
-        let mut string = string.trim_start().to_owned();
+        string.trim_good();
+        println!("Ses {}", string);
         while string.peek().is_some_and(|c| c == '+' || c == '-') {
             match string.remove(0) {
                 '+' => {
+                    string.trim_good();
                     let (right, remainder) = match Term::from_string(string) {
                         Some(res) => res,
                         None => return None,
@@ -56,6 +59,7 @@ impl Token for Exp {
                     string = remainder.trim_start().to_owned();
                 }
                 '-' => {
+                    string.trim_good();
                     let (right, remainder) = match Term::from_string(string) {
                         Some(res) => res,
                         None => return None,
@@ -92,20 +96,22 @@ impl Token for Exp {
 }
 
 impl Token for Term {
-    fn parse(string: String) -> Option<(Self, String)>
+    fn parse(mut string: String) -> Option<(Self, String)>
     where
         Self: Sized,
     {
         println!("Parsing term from {}", string);
-        let (mut left, string) = match Factor::from_string(string) {
+        string.trim_good();
+        let (mut left, mut string) = match Factor::from_string(string) {
             Some(res) => (Term::Factor(Box::new(res.0)), res.1),
             None => return None,
         };
 
-        let mut string = string.trim_start().to_owned();
+        string.trim_good();
         while string.peek().is_some_and(|c| c == '*' || c == '/') {
             match string.remove(0) {
                 '*' => {
+                    string.trim_good();
                     let (right, remainder) = match Factor::from_string(string) {
                         Some(res) => res,
                         None => return None,
@@ -129,6 +135,7 @@ impl Token for Term {
                     string = remainder.trim_start().to_owned();
                 }
                 '/' => {
+                    string.trim_good();
                     let (right, remainder) = match Factor::from_string(string) {
                         Some(res) => res,
                         None => return None,
@@ -201,8 +208,11 @@ impl Token for Factor {
 
         if string.peek().is_some_and(|c| c == '(') {
             string.remove(0).to_string();
+            string.trim_good();
+
             match Exp::from_string(string) {
                 Some((exp, mut remainder)) => {
+                    remainder.trim_good();
                     if remainder.peek().is_some_and(|c| c == ')') {
                         remainder.remove(0);
                         println!("Parsed exp in parenthesesis");
