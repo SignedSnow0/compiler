@@ -6,6 +6,40 @@ pub trait AstNode: Display {
     fn eval(&self) -> Self::TEval;
 }
 
+pub struct LogicalNot {
+    pub value: Box<dyn AstNode<TEval = i32>>,
+}
+
+pub struct LogicalOr {
+    pub left: Box<dyn AstNode<TEval = i32>>,
+    pub right: Box<dyn AstNode<TEval = i32>>,
+}
+
+pub struct LogicalAnd {
+    pub left: Box<dyn AstNode<TEval = i32>>,
+    pub right: Box<dyn AstNode<TEval = i32>>,
+}
+
+pub struct Less {
+    pub left: Box<dyn AstNode<TEval = i32>>,
+    pub right: Box<dyn AstNode<TEval = i32>>,
+}
+
+pub struct Greater {
+    pub left: Box<dyn AstNode<TEval = i32>>,
+    pub right: Box<dyn AstNode<TEval = i32>>,
+}
+
+pub struct LessEqual {
+    pub left: Box<dyn AstNode<TEval = i32>>,
+    pub right: Box<dyn AstNode<TEval = i32>>,
+}
+
+pub struct GreaterEqual {
+    pub left: Box<dyn AstNode<TEval = i32>>,
+    pub right: Box<dyn AstNode<TEval = i32>>,
+}
+
 pub struct Addition {
     pub left: Box<dyn AstNode<TEval = i32>>,
     pub right: Box<dyn AstNode<TEval = i32>>,
@@ -28,6 +62,67 @@ pub struct Division {
 
 pub struct Integer {
     pub value: i32,
+}
+
+impl AstNode for LogicalNot {
+    type TEval = i32;
+
+    fn eval(&self) -> Self::TEval {
+        let value = self.value.eval() != 0;
+        (!value).into()
+    }
+}
+
+impl AstNode for LogicalOr {
+    type TEval = i32;
+
+    fn eval(&self) -> Self::TEval {
+        let left = self.left.eval() != 0;
+        let right = self.right.eval() != 0;
+        (left || right).into()
+    }
+}
+
+impl AstNode for LogicalAnd {
+    type TEval = i32;
+
+    fn eval(&self) -> Self::TEval {
+        let left = self.left.eval() != 0;
+        let right = self.right.eval() != 0;
+        (left && right).into()
+    }
+}
+
+impl AstNode for Less {
+    type TEval = i32;
+
+    fn eval(&self) -> Self::TEval {
+        (self.left.eval() < self.right.eval()).into()
+    }
+}
+
+impl AstNode for Greater {
+    type TEval = i32;
+
+    fn eval(&self) -> Self::TEval {
+        (self.left.eval() > self.right.eval()).into()
+    }
+}
+
+impl AstNode for LessEqual {
+    type TEval = i32;
+
+    fn eval(&self) -> Self::TEval {
+        (self.left.eval() <= self.right.eval()).into()
+    }
+}
+
+impl AstNode for GreaterEqual {
+    type TEval = i32;
+
+    fn eval(&self) -> Self::TEval {
+        (self.left.eval() >= self.right.eval()).into()
+    }
 }
 
 impl AstNode for Addition {
@@ -97,5 +192,47 @@ impl Display for Division {
 impl Display for Integer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
+    }
+}
+
+impl Display for Less {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Less({}, {})", self.left, self.right)
+    }
+}
+
+impl Display for Greater {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Greater({}, {})", self.left, self.right)
+    }
+}
+
+impl Display for LessEqual {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "LessEqual({}, {})", self.left, self.right)
+    }
+}
+
+impl Display for GreaterEqual {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GreaterEqual({}, {})", self.left, self.right)
+    }
+}
+
+impl Display for LogicalNot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Not({})", self.value)
+    }
+}
+
+impl Display for LogicalOr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Or({}, {})", self.left, self.right)
+    }
+}
+
+impl Display for LogicalAnd {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "And({}, {})", self.left, self.right)
     }
 }
