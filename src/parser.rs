@@ -1,17 +1,17 @@
 use crate::{
+    Expression, Factor, Term,
+    ast::{Addition, AstNode, Division, Integer, Multiplication, Subtraction},
     peek::StringUtils,
-    {Expression, Factor, Term},
 };
 use anyhow::{Result, anyhow};
 
-pub trait Parser: Sized {
-    fn parse(string: String) -> Result<(Self, String)>;
+pub trait Parser<T>: Sized {
+    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = T>>, String)>;
 }
 
-impl Parser for Expression {
-    fn parse(string: String) -> Result<(Self, String)> {
-        let (left, string) = Term::parse(string.trim_mut())?;
-        let mut left = Expression::Term(Box::new(left));
+impl Parser<i32> for Expression {
+    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+        let (mut left, string) = Term::parse(string.trim_mut())?;
         let mut string = string.trim_mut();
 
         while string.peek().is_some_and(|c| c == '+' || c == '-') {
@@ -19,38 +19,13 @@ impl Parser for Expression {
                 '+' => {
                     let (right, remainder) = Term::parse(string.trim_mut())?;
 
-                    match left {
-                        Expression::Term(term) => {
-                            left = Expression::Addition(term, Box::new(right));
-                        }
-                        _ => {
-                            left = Expression::Addition(
-                                Box::new(Term::Factor(Box::new(Factor::Expression(Box::new(
-                                    left,
-                                ))))),
-                                Box::new(right),
-                            );
-                        }
-                    }
+                    left = Box::new(Addition { left, right });
                     string = remainder.trim_mut();
                 }
                 '-' => {
                     let (right, remainder) = Term::parse(string.trim_mut())?;
 
-                    match left {
-                        Expression::Term(term) => {
-                            left = Expression::Subtraction(term, Box::new(right));
-                        }
-                        _ => {
-                            left = Expression::Subtraction(
-                                Box::new(Term::Factor(Box::new(Factor::Expression(Box::new(
-                                    left,
-                                ))))),
-                                Box::new(right),
-                            );
-                        }
-                    }
-
+                    left = Box::new(Subtraction { left, right });
                     string = remainder.trim_mut();
                 }
                 _ => return Err(anyhow!("expected '+' or '-'")),
@@ -61,10 +36,9 @@ impl Parser for Expression {
     }
 }
 
-impl Parser for Term {
-    fn parse(string: String) -> Result<(Self, String)> {
-        let (left, string) = Factor::parse(string.trim_mut())?;
-        let mut left = Term::Factor(Box::new(left));
+impl Parser<i32> for Term {
+    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+        let (mut left, string) = Factor::parse(string.trim_mut())?;
         let mut string = string.trim_mut();
 
         while string.peek().is_some_and(|c| c == '*' || c == '/') {
@@ -72,38 +46,13 @@ impl Parser for Term {
                 '*' => {
                     let (right, remainder) = Factor::parse(string.trim_mut())?;
 
-                    match left {
-                        Term::Factor(term) => {
-                            left = Term::Multiplication(term, Box::new(right));
-                        }
-                        _ => {
-                            left = Term::Multiplication(
-                                Box::new(Factor::Expression(Box::new(Expression::Term(Box::new(
-                                    left,
-                                ))))),
-                                Box::new(right),
-                            );
-                        }
-                    }
+                    left = Box::new(Multiplication { left, right });
                     string = remainder.trim_mut();
                 }
                 '/' => {
                     let (right, remainder) = Factor::parse(string.trim_mut())?;
 
-                    match left {
-                        Term::Factor(term) => {
-                            left = Term::Division(term, Box::new(right));
-                        }
-                        _ => {
-                            left = Term::Division(
-                                Box::new(Factor::Expression(Box::new(Expression::Term(Box::new(
-                                    left,
-                                ))))),
-                                Box::new(right),
-                            );
-                        }
-                    }
-
+                    left = Box::new(Division { left, right });
                     string = remainder.trim_mut();
                 }
                 _ => return Err(anyhow!("expected '*' or '/'")),
@@ -114,8 +63,8 @@ impl Parser for Term {
     }
 }
 
-impl Parser for Factor {
-    fn parse(string: String) -> Result<(Self, String)> {
+impl Parser<i32> for Factor {
+    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
         let mut string = string.trim_mut();
         if string.peek().is_some_and(|c| c == '(') {
             string.remove(0);
@@ -125,7 +74,7 @@ impl Parser for Factor {
             if string.peek().is_some_and(|c| c == ')') {
                 string.remove(0);
 
-                return Ok((Factor::Expression(Box::new(left)), string));
+                return Ok((left, string));
             }
 
             return Err(anyhow!("failed to parse expression, expected ')'"));
@@ -135,8 +84,8 @@ impl Parser for Factor {
             value_str.push(string.remove(0));
         }
 
-        if let Ok(value) = value_str.parse::<u32>() {
-            return Ok((Factor::Integer(value), string));
+        if let Ok(value) = value_str.parse::<i32>() {
+            return Ok((Box::new(Integer { value }), string));
         }
 
         Err(anyhow!("failed to parse integer"))

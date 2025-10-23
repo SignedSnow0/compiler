@@ -9,35 +9,36 @@ mod peek;
 // <expression> = <term>
 //              | <expression>"+"<term>
 //              | <expression>"-"<term>
-#[derive(Debug)]
 pub enum Expression {
-    Addition(Box<Term>, Box<Term>),
-    Subtraction(Box<Term>, Box<Term>),
-    Term(Box<Term>),
+    Addition(Box<dyn AstNode<TEval = i32>>, Box<dyn AstNode<TEval = i32>>),
+    Subtraction(Box<dyn AstNode<TEval = i32>>, Box<dyn AstNode<TEval = i32>>),
+    Term(Box<dyn AstNode<TEval = i32>>),
 }
+
 // <term> = <factor>
 //        | <term>"*"<factor>
 //        | <term>"/"<factor>
-#[derive(Debug)]
 pub enum Term {
-    Multiplication(Box<Factor>, Box<Factor>),
-    Division(Box<Factor>, Box<Factor>),
-    Factor(Box<Factor>),
+    Multiplication(Box<dyn AstNode<TEval = i32>>, Box<dyn AstNode<TEval = i32>>),
+    Division(Box<dyn AstNode<TEval = i32>>, Box<dyn AstNode<TEval = i32>>),
+    Factor(Box<dyn AstNode<TEval = i32>>),
 }
 
 // <term> = <number>
 //        | "("<expression>")"
-#[derive(Debug)]
 pub enum Factor {
-    Integer(u32),
-    Expression(Box<Expression>),
+    Integer(i32),
+    Expression(Box<dyn AstNode<TEval = i32>>),
 }
 
 fn main() {
     println!("Write an expression: ");
     let input = io::stdin().lock().lines().next().unwrap().unwrap();
     match Expression::parse(input.trim_mut()) {
-        Ok((expression, remainder)) => println!("{:?}\n Result: {}", expression, expression.eval()),
+        Ok((expression, remainder)) => {
+            println!("Parsed expression: {}", expression);
+            println!("Solution: {}", expression.eval());
+        }
         Err(err) => println!("Error parsing expression: {}", err),
     }
 }
