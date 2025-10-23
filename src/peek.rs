@@ -1,20 +1,21 @@
-pub trait Peek {
+pub trait StringUtils {
     type PeekValue;
 
     fn peek(&self) -> Option<Self::PeekValue>;
-    fn trim_good(&mut self);
+    fn trim_mut(self) -> Self;
 }
 
-impl Peek for String {
+impl StringUtils for String {
     type PeekValue = char;
 
     fn peek(&self) -> Option<Self::PeekValue> {
         self.chars().next()
     }
 
-    fn trim_good(&mut self) {
+    fn trim_mut(mut self) -> Self {
         while self.peek().is_some_and(|c| c == ' ') {
             self.remove(0);
         }
+        self
     }
 }
