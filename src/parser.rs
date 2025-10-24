@@ -67,6 +67,8 @@ where
     Ok((left, string))
 }
 
+type Start = Or;
+
 impl Parser<i32> for Or {
     type TNext = And;
 
@@ -235,5 +237,39 @@ impl Parser<i32> for Factor {
         }
 
         Err(anyhow!("failed to parse integer"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_arithmetic() {
+        let expression = "12 + 5 / 4".to_owned();
+        let (expression, _remainder) = Start::parse(expression).unwrap();
+
+        let expected = Box::new(Addition {
+            left: Box::new(Integer { value: 12 }),
+            right: Box::new(Division {
+                left: Box::new(Integer { value: 5 }),
+                right: Box::new(Integer { value: 4 }),
+            }),
+        });
+
+        assert_eq!(expression.eval(), expected.eval());
+
+        let expression = "(12 + 5) / 4".to_owned();
+        let (expression, _remainder) = Start::parse(expression).unwrap();
+
+        let expected = Box::new(Division {
+            left: Box::new(Addition {
+                left: Box::new(Integer { value: 12 }),
+                right: Box::new(Integer { value: 5 }),
+            }),
+            right: Box::new(Integer { value: 4 }),
+        });
+
+        assert_eq!(expression.eval(), expected.eval());
     }
 }
