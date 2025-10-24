@@ -6,6 +6,15 @@ pub trait AstNode: Display {
     fn eval(&self) -> Self::TEval;
 }
 
+pub trait BinaryAstNode: AstNode {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized;
+}
+
 pub struct LogicalNot {
     pub value: Box<dyn AstNode<TEval = i32>>,
 }
@@ -73,6 +82,18 @@ impl AstNode for LogicalNot {
     }
 }
 
+impl BinaryAstNode for LogicalOr {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
+    }
+}
+
 impl AstNode for LogicalOr {
     type TEval = i32;
 
@@ -80,6 +101,18 @@ impl AstNode for LogicalOr {
         let left = self.left.eval() != 0;
         let right = self.right.eval() != 0;
         (left || right).into()
+    }
+}
+
+impl BinaryAstNode for LogicalAnd {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -93,11 +126,35 @@ impl AstNode for LogicalAnd {
     }
 }
 
+impl BinaryAstNode for Less {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
+    }
+}
+
 impl AstNode for Less {
     type TEval = i32;
 
     fn eval(&self) -> Self::TEval {
         (self.left.eval() < self.right.eval()).into()
+    }
+}
+
+impl BinaryAstNode for Greater {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -109,11 +166,35 @@ impl AstNode for Greater {
     }
 }
 
+impl BinaryAstNode for LessEqual {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
+    }
+}
+
 impl AstNode for LessEqual {
     type TEval = i32;
 
     fn eval(&self) -> Self::TEval {
         (self.left.eval() <= self.right.eval()).into()
+    }
+}
+
+impl BinaryAstNode for GreaterEqual {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -125,11 +206,35 @@ impl AstNode for GreaterEqual {
     }
 }
 
+impl BinaryAstNode for Addition {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
+    }
+}
+
 impl AstNode for Addition {
     type TEval = i32;
 
     fn eval(&self) -> Self::TEval {
         self.left.eval() + self.right.eval()
+    }
+}
+
+impl BinaryAstNode for Subtraction {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -141,11 +246,35 @@ impl AstNode for Subtraction {
     }
 }
 
+impl BinaryAstNode for Multiplication {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
+    }
+}
+
 impl AstNode for Multiplication {
     type TEval = i32;
 
     fn eval(&self) -> Self::TEval {
         self.left.eval() * self.right.eval()
+    }
+}
+
+impl BinaryAstNode for Division {
+    fn new(
+        left: Box<dyn AstNode<TEval = Self::TEval>>,
+        right: Box<dyn AstNode<TEval = Self::TEval>>,
+    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 

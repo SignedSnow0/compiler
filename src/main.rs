@@ -1,7 +1,7 @@
 use std::io::{self, BufRead};
 
 use crate::{
-    parser::{Or, Parser, Relation},
+    parser::{Or, Parser},
     peek::StringUtils,
 };
 
@@ -13,7 +13,7 @@ fn main() {
     println!("Write an expression: ");
     let input = io::stdin().lock().lines().next().unwrap().unwrap();
     match Or::parse(input.trim_mut()) {
-        Ok((expression, remainder)) => {
+        Ok((expression, _remainder)) => {
             println!("Parsed expression: {}", expression);
             println!("Solution: {}", expression.eval());
         }

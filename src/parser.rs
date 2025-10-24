@@ -1,13 +1,15 @@
 use crate::{
     ast::{
-        Addition, AstNode, Division, Greater, GreaterEqual, Integer, Less, LessEqual, LogicalAnd,
-        LogicalNot, LogicalOr, Multiplication, Subtraction,
+        Addition, AstNode, BinaryAstNode, Division, Greater, GreaterEqual, Integer, Less,
+        LessEqual, LogicalAnd, LogicalNot, LogicalOr, Multiplication, Subtraction,
     },
     peek::StringUtils,
 };
 use anyhow::{Result, anyhow};
 
 pub trait Parser<T> {
+    type TNext: Parser<T>;
+
     fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = T>>, String)>;
 }
 
@@ -44,70 +46,86 @@ pub struct Not;
 //        | "("<or>")"
 pub struct Factor;
 
+fn parse_binary_op<T, TNext, F>(
+    string: String,
+    separators: &[char],
+    right_parse: F,
+) -> Result<(Box<dyn AstNode<TEval = T>>, String)>
+where
+    TNext: Parser<T>,
+    F: Fn(Box<dyn AstNode<TEval = T>>, String) -> Result<(Box<dyn AstNode<TEval = T>>, String)>,
+{
+    let (mut left, string) = TNext::parse(string.trim_mut())?;
+    let mut string = string.trim_mut();
+
+    while string.peek().is_some_and(|c| separators.contains(&c)) {
+        let (parsed, remainder) = right_parse(left, string)?;
+        left = parsed;
+        string = remainder;
+    }
+
+    Ok((left, string))
+}
+
 impl Parser<i32> for Or {
+    type TNext = And;
+
     fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
-        let (mut left, string) = And::parse(string.trim_mut())?;
-        let mut string = string.trim_mut();
-
-        while string.peek().is_some_and(|c| c == '|') {
-            string.remove(0);
-            match string.remove(0) {
-                '|' => {
-                    let (right, remainder) = And::parse(string.trim_mut())?;
-
-                    left = Box::new(LogicalOr { left, right });
-                    string = remainder.trim_mut();
+        parse_binary_op::<i32, Self::TNext, _>(
+            string.trim_mut(),
+            vec!['|'].as_slice(),
+            |left, mut string| {
+                string.remove(0);
+                match string.remove(0) {
+                    '|' => {
+                        let (right, remainder) = Self::TNext::parse(string)?;
+                        Ok((LogicalOr::new(left, right), remainder.trim_mut()))
+                    }
+                    _ => return Err(anyhow!("expected '|'")),
                 }
-                _ => return Err(anyhow!("expected '|'")),
-            }
-        }
-
-        Ok((left, string))
+            },
+        )
     }
 }
 
 impl Parser<i32> for And {
+    type TNext = Relation;
+
     fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
-        let (mut left, string) = Relation::parse(string.trim_mut())?;
-        let mut string = string.trim_mut();
-
-        while string.peek().is_some_and(|c| c == '&') {
-            string.remove(0);
-            match string.remove(0) {
-                '&' => {
-                    let (right, remainder) = Relation::parse(string.trim_mut())?;
-
-                    left = Box::new(LogicalAnd { left, right });
-                    string = remainder.trim_mut();
+        parse_binary_op::<i32, Self::TNext, _>(
+            string.trim_mut(),
+            vec!['&'].as_slice(),
+            |left, mut string| {
+                string.remove(0);
+                match string.remove(0) {
+                    '&' => {
+                        let (right, remainder) = Self::TNext::parse(string)?;
+                        Ok((LogicalAnd::new(left, right), remainder.trim_mut()))
+                    }
+                    _ => return Err(anyhow!("expected '|'")),
                 }
-                _ => return Err(anyhow!("expected '&'")),
-            }
-        }
-
-        Ok((left, string))
+            },
+        )
     }
 }
 
 impl Parser<i32> for Relation {
-    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
-        let (mut left, string) = Expression::parse(string.trim_mut())?;
-        let mut string = string.trim_mut();
+    type TNext = Expression;
 
-        while string.peek().is_some_and(|c| c == '<' || c == '>') {
-            match string.remove(0) {
+    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+        parse_binary_op::<i32, Self::TNext, _>(
+            string.trim_mut(),
+            vec!['>', '<'].as_slice(),
+            |left, mut string| match string.remove(0) {
                 '>' => {
                     if string.peek().is_some_and(|c| c == '=') {
                         string.remove(0);
 
                         let (right, remainder) = Expression::parse(string.trim_mut())?;
-
-                        left = Box::new(GreaterEqual { left, right });
-                        string = remainder.trim_mut();
+                        Ok((GreaterEqual::new(left, right), remainder.trim_mut()))
                     } else {
                         let (right, remainder) = Term::parse(string.trim_mut())?;
-
-                        left = Box::new(Greater { left, right });
-                        string = remainder.trim_mut();
+                        Ok((Greater::new(left, right), remainder.trim_mut()))
                     }
                 }
                 '<' => {
@@ -115,79 +133,65 @@ impl Parser<i32> for Relation {
                         string.remove(0);
 
                         let (right, remainder) = Expression::parse(string.trim_mut())?;
-
-                        left = Box::new(LessEqual { left, right });
-                        string = remainder.trim_mut();
+                        Ok((LessEqual::new(left, right), remainder.trim_mut()))
                     } else {
                         let (right, remainder) = Term::parse(string.trim_mut())?;
-
-                        left = Box::new(Less { left, right });
-                        string = remainder.trim_mut();
+                        Ok((Less::new(left, right), remainder.trim_mut()))
                     }
                 }
                 _ => return Err(anyhow!("expected '>' or '<'")),
-            }
-        }
-
-        Ok((left, string))
+            },
+        )
     }
 }
 
 impl Parser<i32> for Expression {
+    type TNext = Term;
+
     fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
-        let (mut left, string) = Term::parse(string.trim_mut())?;
-        let mut string = string.trim_mut();
-
-        while string.peek().is_some_and(|c| c == '+' || c == '-') {
-            match string.remove(0) {
+        parse_binary_op::<i32, Self::TNext, _>(
+            string.trim_mut(),
+            vec!['+', '-'].as_slice(),
+            |left, mut string| match string.remove(0) {
                 '+' => {
-                    let (right, remainder) = Term::parse(string.trim_mut())?;
-
-                    left = Box::new(Addition { left, right });
-                    string = remainder.trim_mut();
+                    let (right, remainder) = Self::TNext::parse(string)?;
+                    Ok((Addition::new(left, right), remainder.trim_mut()))
                 }
                 '-' => {
-                    let (right, remainder) = Term::parse(string.trim_mut())?;
-
-                    left = Box::new(Subtraction { left, right });
-                    string = remainder.trim_mut();
+                    let (right, remainder) = Self::TNext::parse(string)?;
+                    Ok((Subtraction::new(left, right), remainder.trim_mut()))
                 }
-                _ => return Err(anyhow!("expected '+' or '-'")),
-            }
-        }
-
-        Ok((left, string))
+                _ => return Err(anyhow!("expected '|'")),
+            },
+        )
     }
 }
 
 impl Parser<i32> for Term {
+    type TNext = Not;
+
     fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
-        let (mut left, string) = Not::parse(string.trim_mut())?;
-        let mut string = string.trim_mut();
-
-        while string.peek().is_some_and(|c| c == '*' || c == '/') {
-            match string.remove(0) {
+        parse_binary_op::<i32, Self::TNext, _>(
+            string.trim_mut(),
+            vec!['*', '/'].as_slice(),
+            |left, mut string| match string.remove(0) {
                 '*' => {
-                    let (right, remainder) = Not::parse(string.trim_mut())?;
-
-                    left = Box::new(Multiplication { left, right });
-                    string = remainder.trim_mut();
+                    let (right, remainder) = Self::TNext::parse(string)?;
+                    Ok((Multiplication::new(left, right), remainder.trim_mut()))
                 }
                 '/' => {
-                    let (right, remainder) = Not::parse(string.trim_mut())?;
-
-                    left = Box::new(Division { left, right });
-                    string = remainder.trim_mut();
+                    let (right, remainder) = Self::TNext::parse(string)?;
+                    Ok((Division::new(left, right), remainder.trim_mut()))
                 }
-                _ => return Err(anyhow!("expected '*' or '/'")),
-            }
-        }
-
-        Ok((left, string))
+                _ => return Err(anyhow!("expected '|'")),
+            },
+        )
     }
 }
 
 impl Parser<i32> for Not {
+    type TNext = Factor;
+
     fn parse(mut string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
         if let Some(c) = string.peek()
             && c == '!'
@@ -203,11 +207,13 @@ impl Parser<i32> for Not {
 }
 
 impl Parser<i32> for Factor {
+    type TNext = Or;
+
     fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
         let mut string = string.trim_mut();
         if string.peek().is_some_and(|c| c == '(') {
             string.remove(0);
-            let (left, remainder) = Or::parse(string)?;
+            let (left, remainder) = Self::TNext::parse(string)?;
 
             string = remainder.trim_mut();
             if string.peek().is_some_and(|c| c == ')') {
