@@ -5,10 +5,10 @@ use crate::{
 };
 use anyhow::{Result, anyhow};
 
-impl Parser<i32> for Or {
+impl Parser for Or {
     type TNext = And;
 
-    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+    fn parse(string: String) -> Result<(Box<dyn AstNode>, String)> {
         parse_binary_op::<i32, Self::TNext, _>(
             string.trim_mut(),
             vec!['|'].as_slice(),
@@ -26,10 +26,10 @@ impl Parser<i32> for Or {
     }
 }
 
-impl Parser<i32> for And {
+impl Parser for And {
     type TNext = Relation;
 
-    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+    fn parse(string: String) -> Result<(Box<dyn AstNode>, String)> {
         parse_binary_op::<i32, Self::TNext, _>(
             string.trim_mut(),
             vec!['&'].as_slice(),
@@ -47,10 +47,10 @@ impl Parser<i32> for And {
     }
 }
 
-impl Parser<i32> for Relation {
+impl Parser for Relation {
     type TNext = Expression;
 
-    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+    fn parse(string: String) -> Result<(Box<dyn AstNode>, String)> {
         parse_binary_op::<i32, Self::TNext, _>(
             string.trim_mut(),
             vec!['>', '<'].as_slice(),
@@ -83,10 +83,10 @@ impl Parser<i32> for Relation {
     }
 }
 
-impl Parser<i32> for Not {
+impl Parser for Not {
     type TNext = Factor;
 
-    fn parse(mut string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+    fn parse(mut string: String) -> Result<(Box<dyn AstNode>, String)> {
         if let Some(c) = string.peek()
             && c == '!'
         {

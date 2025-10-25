@@ -5,10 +5,10 @@ use crate::{
 };
 use anyhow::{Result, anyhow};
 
-impl Parser<i32> for Factor {
+impl Parser for Factor {
     type TNext = Or;
 
-    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+    fn parse(string: String) -> Result<(Box<dyn AstNode>, String)> {
         let mut string = string.trim_mut();
         if string.peek().is_some_and(|c| c == '(') {
             string.remove(0);

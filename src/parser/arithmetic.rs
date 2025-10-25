@@ -5,10 +5,10 @@ use crate::{
 };
 use anyhow::{Result, anyhow};
 
-impl Parser<i32> for Expression {
+impl Parser for Expression {
     type TNext = Term;
 
-    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+    fn parse(string: String) -> Result<(Box<dyn AstNode>, String)> {
         parse_binary_op::<i32, Self::TNext, _>(
             string.trim_mut(),
             vec!['+', '-'].as_slice(),
@@ -27,10 +27,10 @@ impl Parser<i32> for Expression {
     }
 }
 
-impl Parser<i32> for Term {
+impl Parser for Term {
     type TNext = Not;
 
-    fn parse(string: String) -> Result<(Box<dyn AstNode<TEval = i32>>, String)> {
+    fn parse(string: String) -> Result<(Box<dyn AstNode>, String)> {
         parse_binary_op::<i32, Self::TNext, _>(
             string.trim_mut(),
             vec!['*', '/'].as_slice(),

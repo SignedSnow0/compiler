@@ -13,7 +13,7 @@ impl StringUtils for String {
     }
 
     fn trim_mut(mut self) -> Self {
-        while self.peek().is_some_and(|c| c == ' ') {
+        while self.peek().is_some_and(|c| c.is_whitespace()) {
             self.remove(0);
         }
         self

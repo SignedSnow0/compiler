@@ -1,32 +1,32 @@
 use std::fmt::Display;
 
-use crate::ast::{AstNode, BinaryAstNode};
+use crate::{
+    ast::{AstNode, BinaryAstNode},
+    compiler::NodeCompiler,
+};
 
 pub struct Addition {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct Subtraction {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct Multiplication {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct Division {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 impl BinaryAstNode for Addition {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -35,18 +35,13 @@ impl BinaryAstNode for Addition {
 }
 
 impl AstNode for Addition {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        self.left.eval() + self.right.eval()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_sum(self)
     }
 }
 
 impl BinaryAstNode for Subtraction {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -55,18 +50,13 @@ impl BinaryAstNode for Subtraction {
 }
 
 impl AstNode for Subtraction {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        self.left.eval() - self.right.eval()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_subtraction(self)
     }
 }
 
 impl BinaryAstNode for Multiplication {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -75,18 +65,13 @@ impl BinaryAstNode for Multiplication {
 }
 
 impl AstNode for Multiplication {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        self.left.eval() * self.right.eval()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_multiplication(self)
     }
 }
 
 impl BinaryAstNode for Division {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -95,10 +80,8 @@ impl BinaryAstNode for Division {
 }
 
 impl AstNode for Division {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        self.left.eval() / self.right.eval()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_division(self)
     }
 }
 

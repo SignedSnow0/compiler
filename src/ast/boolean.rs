@@ -1,55 +1,52 @@
 use std::fmt::Display;
 
-use crate::ast::{AstNode, BinaryAstNode};
+use crate::{
+    ast::{AstNode, BinaryAstNode},
+    compiler::NodeCompiler,
+};
 
 pub struct LogicalNot {
-    pub value: Box<dyn AstNode<TEval = i32>>,
+    pub value: Box<dyn AstNode>,
 }
 
 pub struct LogicalOr {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct LogicalAnd {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct Less {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct Greater {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct LessEqual {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct GreaterEqual {
-    pub left: Box<dyn AstNode<TEval = i32>>,
-    pub right: Box<dyn AstNode<TEval = i32>>,
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
 }
 
 impl AstNode for LogicalNot {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        let value = self.value.eval() != 0;
-        (!value).into()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_logical_not(self)
     }
 }
 
 impl BinaryAstNode for LogicalOr {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -58,20 +55,13 @@ impl BinaryAstNode for LogicalOr {
 }
 
 impl AstNode for LogicalOr {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        let left = self.left.eval() != 0;
-        let right = self.right.eval() != 0;
-        (left || right).into()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_logical_or(self)
     }
 }
 
 impl BinaryAstNode for LogicalAnd {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -80,20 +70,13 @@ impl BinaryAstNode for LogicalAnd {
 }
 
 impl AstNode for LogicalAnd {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        let left = self.left.eval() != 0;
-        let right = self.right.eval() != 0;
-        (left && right).into()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_logical_and(self)
     }
 }
 
 impl BinaryAstNode for Less {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -102,18 +85,13 @@ impl BinaryAstNode for Less {
 }
 
 impl AstNode for Less {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        (self.left.eval() < self.right.eval()).into()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_less(self)
     }
 }
 
 impl BinaryAstNode for Greater {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -122,18 +100,13 @@ impl BinaryAstNode for Greater {
 }
 
 impl AstNode for Greater {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        (self.left.eval() > self.right.eval()).into()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_greater(self)
     }
 }
 
 impl BinaryAstNode for LessEqual {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -142,18 +115,13 @@ impl BinaryAstNode for LessEqual {
 }
 
 impl AstNode for LessEqual {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        (self.left.eval() <= self.right.eval()).into()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_less_equal(self)
     }
 }
 
 impl BinaryAstNode for GreaterEqual {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized,
     {
@@ -162,10 +130,8 @@ impl BinaryAstNode for GreaterEqual {
 }
 
 impl AstNode for GreaterEqual {
-    type TEval = i32;
-
-    fn eval(&self) -> Self::TEval {
-        (self.left.eval() >= self.right.eval()).into()
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+        visitor.compile_greater_equal(self)
     }
 }
 

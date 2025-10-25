@@ -1,20 +1,18 @@
 pub mod arithmetic;
 pub mod boolean;
+pub mod lvalues;
 pub mod rvalues;
 
 use std::fmt::Display;
 
-pub trait AstNode: Display {
-    type TEval;
+use crate::compiler::NodeCompiler;
 
-    fn eval(&self) -> Self::TEval;
+pub trait AstNode: Display {
+    fn accept(&self, visitor: &dyn NodeCompiler) -> String;
 }
 
 pub trait BinaryAstNode: AstNode {
-    fn new(
-        left: Box<dyn AstNode<TEval = Self::TEval>>,
-        right: Box<dyn AstNode<TEval = Self::TEval>>,
-    ) -> Box<dyn BinaryAstNode<TEval = Self::TEval>>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn BinaryAstNode>
     where
         Self: Sized;
 }
