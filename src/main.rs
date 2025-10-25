@@ -1,7 +1,7 @@
 use std::io::{self, BufRead};
 
 use crate::{
-    parser::{Or, Parser},
+    parser::{Parser, Start},
     peek::StringUtils,
 };
 
@@ -12,7 +12,7 @@ mod peek;
 fn main() {
     println!("Write an expression: ");
     let input = io::stdin().lock().lines().next().unwrap().unwrap();
-    match Or::parse(input.trim_mut()) {
+    match Start::parse(input.trim_mut()) {
         Ok((expression, _remainder)) => {
             println!("Parsed expression: {}", expression);
             println!("Solution: {}", expression.eval());
