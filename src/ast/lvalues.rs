@@ -2,7 +2,8 @@ use crate::{
     ast::{AstNode, BinaryAstNode},
     compiler::NodeCompiler,
 };
-use std::fmt::Display;
+use anyhow::Result;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 pub struct Identifier {
     pub name: String,
@@ -23,25 +24,25 @@ impl BinaryAstNode for Assignment {
 }
 
 impl AstNode for Assignment {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_assignment(self)
     }
 }
 
 impl Display for Assignment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Assignment({}, {})", self.left, self.right)
     }
 }
 
 impl AstNode for Identifier {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_identifier(self)
     }
 }
 
 impl Display for Identifier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.name)
     }
 }

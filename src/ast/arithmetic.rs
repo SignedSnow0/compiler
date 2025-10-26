@@ -1,4 +1,6 @@
 use std::fmt::Display;
+use anyhow::Result;
+use std::fmt::{Formatter, Result as FmtResult};
 
 use crate::{
     ast::{AstNode, BinaryAstNode},
@@ -35,7 +37,7 @@ impl BinaryAstNode for Addition {
 }
 
 impl AstNode for Addition {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_sum(self)
     }
 }
@@ -50,7 +52,7 @@ impl BinaryAstNode for Subtraction {
 }
 
 impl AstNode for Subtraction {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_subtraction(self)
     }
 }
@@ -65,7 +67,7 @@ impl BinaryAstNode for Multiplication {
 }
 
 impl AstNode for Multiplication {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_multiplication(self)
     }
 }
@@ -80,31 +82,31 @@ impl BinaryAstNode for Division {
 }
 
 impl AstNode for Division {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_division(self)
     }
 }
 
 impl Display for Addition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Addition({}, {})", self.left, self.right)
     }
 }
 
 impl Display for Subtraction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Subtraction({}, {})", self.left, self.right)
     }
 }
 
 impl Display for Multiplication {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Multiplication({}, {})", self.left, self.right)
     }
 }
 
 impl Display for Division {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Division({}, {})", self.left, self.right)
     }
 }

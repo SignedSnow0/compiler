@@ -1,4 +1,6 @@
 use std::fmt::Display;
+use anyhow::Result;
+use std::fmt::{Formatter, Result as FmtResult};
 
 use crate::{
     ast::{AstNode, BinaryAstNode},
@@ -40,7 +42,7 @@ pub struct GreaterEqual {
 }
 
 impl AstNode for LogicalNot {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_logical_not(self)
     }
 }
@@ -55,7 +57,7 @@ impl BinaryAstNode for LogicalOr {
 }
 
 impl AstNode for LogicalOr {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_logical_or(self)
     }
 }
@@ -70,7 +72,7 @@ impl BinaryAstNode for LogicalAnd {
 }
 
 impl AstNode for LogicalAnd {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_logical_and(self)
     }
 }
@@ -85,7 +87,7 @@ impl BinaryAstNode for Less {
 }
 
 impl AstNode for Less {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_less(self)
     }
 }
@@ -100,7 +102,7 @@ impl BinaryAstNode for Greater {
 }
 
 impl AstNode for Greater {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_greater(self)
     }
 }
@@ -115,7 +117,7 @@ impl BinaryAstNode for LessEqual {
 }
 
 impl AstNode for LessEqual {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_less_equal(self)
     }
 }
@@ -130,49 +132,49 @@ impl BinaryAstNode for GreaterEqual {
 }
 
 impl AstNode for GreaterEqual {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_greater_equal(self)
     }
 }
 
 impl Display for Less {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Less({}, {})", self.left, self.right)
     }
 }
 
 impl Display for Greater {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Greater({}, {})", self.left, self.right)
     }
 }
 
 impl Display for LessEqual {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "LessEqual({}, {})", self.left, self.right)
     }
 }
 
 impl Display for GreaterEqual {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "GreaterEqual({}, {})", self.left, self.right)
     }
 }
 
 impl Display for LogicalNot {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Not({})", self.value)
     }
 }
 
 impl Display for LogicalOr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Or({}, {})", self.left, self.right)
     }
 }
 
 impl Display for LogicalAnd {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "And({}, {})", self.left, self.right)
     }
 }

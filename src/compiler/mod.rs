@@ -2,26 +2,30 @@ use crate::ast::{
     arithmetic::{Addition, Division, Multiplication, Subtraction},
     boolean::{Greater, GreaterEqual, Less, LessEqual, LogicalAnd, LogicalNot, LogicalOr},
     rvalues::Integer,
+    lvalues::{Assignment, Identifier},
 };
+use anyhow::Result;
 
 pub mod llvmcompiler;
 
 pub trait NodeCompiler {
-    fn compile_sum(&self, node: &Addition) -> String;
-    fn compile_subtraction(&self, node: &Subtraction) -> String;
-    fn compile_multiplication(&self, node: &Multiplication) -> String;
-    fn compile_division(&self, node: &Division) -> String;
+    fn compile(&self) -> Result<String>;
 
-    fn compile_logical_not(&self, node: &LogicalNot) -> String;
-    fn compile_logical_or(&self, node: &LogicalOr) -> String;
-    fn compile_logical_and(&self, node: &LogicalAnd) -> String;
-    fn compile_less(&self, node: &Less) -> String;
-    fn compile_greater(&self, node: &Greater) -> String;
-    fn compile_less_equal(&self, node: &LessEqual) -> String;
-    fn compile_greater_equal(&self, node: &GreaterEqual) -> String;
+    fn compile_sum(&mut self, node: &Addition) -> Result<()>;
+    fn compile_subtraction(&mut self, node: &Subtraction) -> Result<()>;
+    fn compile_multiplication(&mut self, node: &Multiplication) -> Result<()>;
+    fn compile_division(&mut self, node: &Division) -> Result<()>;
 
-    fn compile_assignment(&self, node: &crate::ast::lvalues::Assignment) -> String;
-    fn compile_identifier(&self, node: &crate::ast::lvalues::Identifier) -> String;
+    fn compile_logical_not(&mut self, node: &LogicalNot) -> Result<()>;
+    fn compile_logical_or(&mut self, node: &LogicalOr) -> Result<()>;
+    fn compile_logical_and(&mut self, node: &LogicalAnd) -> Result<()>;
+    fn compile_less(&mut self, node: &Less) -> Result<()>;
+    fn compile_greater(&mut self, node: &Greater) -> Result<()>;
+    fn compile_less_equal(&mut self, node: &LessEqual) -> Result<()>;
+    fn compile_greater_equal(&mut self, node: &GreaterEqual) -> Result<()>;
 
-    fn compile_int_lit(&self, node: &Integer) -> String;
+    fn compile_assignment(&mut self, node: &Assignment) -> Result<()>;
+    fn compile_identifier(&mut self, node: &Identifier) -> Result<()>;
+
+    fn compile_int_lit(&mut self, node: &Integer) -> Result<()>;
 }

@@ -1,5 +1,5 @@
-use std::fmt::Display;
-
+use std::fmt::{Display, Formatter, Result as FmtResult};
+use anyhow::Result;
 use crate::{ast::AstNode, compiler::NodeCompiler};
 
 pub trait RValue: AstNode {
@@ -17,13 +17,13 @@ impl RValue for Integer {
 }
 
 impl AstNode for Integer {
-    fn accept(&self, visitor: &dyn NodeCompiler) -> String {
+    fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_int_lit(self)
     }
 }
 
 impl Display for Integer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.value)
     }
 }
