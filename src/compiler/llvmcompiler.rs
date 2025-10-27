@@ -1,8 +1,10 @@
-use inkwell::{values::InstructionOpcode, builder::Builder, context::Context, module::Module, values::IntValue, basic_block::BasicBlock};
-use anyhow::Result;
 use crate::{
-    ast::{arithmetic::*, rvalues::*, lvalues::*, boolean::*},
+    ast::{arithmetic::*, boolean::*, lvalues::*, rvalues::*},
     compiler::NodeCompiler,
+};
+use anyhow::Result;
+use inkwell::{
+    basic_block::BasicBlock, builder::Builder, context::Context, module::Module, values::IntValue,
 };
 
 pub struct LlvmCompiler<'a> {
@@ -10,7 +12,7 @@ pub struct LlvmCompiler<'a> {
     pub builder: Builder<'a>,
     pub module: Module<'a>,
 
-    binaryLiterals: Vec<IntValue<'a>>,
+    intermediate_values: Vec<IntValue<'a>>,
     blocks: Vec<BasicBlock<'a>>,
 }
 
@@ -24,12 +26,23 @@ impl<'a> LlvmCompiler<'a> {
         let function = module.add_function("main", fn_type, None);
         let main_block = context.append_basic_block(function, "entry");
 
-        LlvmCompiler { context, builder, module, binaryLiterals: Vec::new(), blocks: vec![main_block] }
+        LlvmCompiler {
+            context,
+            builder,
+            module,
+            intermediate_values: Vec::new(),
+            blocks: vec![main_block],
+        }
     }
 }
 
 impl NodeCompiler for LlvmCompiler<'_> {
-    fn compile(&self) -> Result<String> {
+    fn compile(&mut self) -> Result<String> {
+        self.builder.position_at_end(self.blocks.pop().unwrap());
+        let _ = self
+            .builder
+            .build_return(Some(&self.intermediate_values.pop().unwrap()));
+
         Ok(self.module.print_to_string().to_string())
     }
 
@@ -37,15 +50,18 @@ impl NodeCompiler for LlvmCompiler<'_> {
         node.left.accept(self)?;
         node.right.accept(self)?;
 
-        let right = self.binaryLiterals.pop().ok_or_else(|| {
-            anyhow::anyhow!("Left operand not found for addition")
-        })?;
-        let left = self.binaryLiterals.pop().ok_or_else(|| {
-            anyhow::anyhow!("Right operand not found for addition") 
-        })?;
+        let right = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Left operand not found for addition"))?;
+        let left = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Right operand not found for addition"))?;
 
-        self.builder.position_at_end(self.blocks.pop().unwrap());
-        let _ = self.builder.build_return(Some(&left));
+        self.builder.position_at_end(*self.blocks.last().unwrap());
+        self.intermediate_values
+            .push(self.builder.build_int_add(left, right, "add").unwrap());
 
         Ok(())
     }
@@ -54,6 +70,19 @@ impl NodeCompiler for LlvmCompiler<'_> {
         node.left.accept(self)?;
         node.right.accept(self)?;
 
+        let right = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Left operand not found for subtraction"))?;
+        let left = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Right operand not found for subtraction"))?;
+
+        self.builder.position_at_end(*self.blocks.last().unwrap());
+        self.intermediate_values
+            .push(self.builder.build_int_sub(left, right, "sub").unwrap());
+
         Ok(())
     }
 
@@ -61,12 +90,41 @@ impl NodeCompiler for LlvmCompiler<'_> {
         node.left.accept(self)?;
         node.right.accept(self)?;
 
+        let right = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Left operand not found for multiplication"))?;
+        let left = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Right operand not found for multiplication"))?;
+
+        self.builder.position_at_end(*self.blocks.last().unwrap());
+        self.intermediate_values
+            .push(self.builder.build_int_mul(left, right, "mul").unwrap());
+
         Ok(())
     }
 
     fn compile_division(&mut self, node: &Division) -> Result<()> {
         node.left.accept(self)?;
         node.right.accept(self)?;
+
+        let right = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Left operand not found for division"))?;
+        let left = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Right operand not found for division"))?;
+
+        self.builder.position_at_end(*self.blocks.last().unwrap());
+        self.intermediate_values.push(
+            self.builder
+                .build_int_signed_div(left, right, "div")
+                .unwrap(),
+        );
 
         Ok(())
     }
@@ -127,16 +185,13 @@ impl NodeCompiler for LlvmCompiler<'_> {
     }
 
     fn compile_identifier(&mut self, node: &Identifier) -> Result<()> {
-        println!("Compiling identifier: {}", node.name);
-
         Ok(())
     }
 
     fn compile_int_lit(&mut self, node: &Integer) -> Result<()> {
         let i32_type = self.context.i32_type();
-        let value = i32_type.const_int(node.value as u64, false);
-
-        self.binaryLiterals.push(value);
+        let value = i32_type.const_int(node.value.try_into().unwrap(), false);
+        self.intermediate_values.push(value);
 
         Ok(())
     }

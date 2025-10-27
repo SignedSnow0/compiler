@@ -1,15 +1,15 @@
 use crate::ast::{
     arithmetic::{Addition, Division, Multiplication, Subtraction},
     boolean::{Greater, GreaterEqual, Less, LessEqual, LogicalAnd, LogicalNot, LogicalOr},
-    rvalues::Integer,
     lvalues::{Assignment, Identifier},
+    rvalues::Integer,
 };
 use anyhow::Result;
 
 pub mod llvmcompiler;
 
 pub trait NodeCompiler {
-    fn compile(&self) -> Result<String>;
+    fn compile(&mut self) -> Result<String>;
 
     fn compile_sum(&mut self, node: &Addition) -> Result<()>;
     fn compile_subtraction(&mut self, node: &Subtraction) -> Result<()>;
