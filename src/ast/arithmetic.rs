@@ -1,6 +1,6 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
 use anyhow::Result;
-use std::fmt::{Formatter, Result as FmtResult};
 
 use crate::{
     ast::{AstNode, BinaryAstNode},

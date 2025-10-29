@@ -181,6 +181,13 @@ impl NodeCompiler for LlvmCompiler<'_> {
         node.left.accept(self)?;
         node.right.accept(self)?;
 
+        let right = self
+            .intermediate_values
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("Left operand not found for division"))?;
+
+        self.builder.position_at_end(*self.blocks.last().unwrap());
+
         Ok(())
     }
 

@@ -25,9 +25,10 @@ fn main() -> Result<()> {
 
     while !input.is_empty() {
         let (expression, remainder) = Start::parse(input.trim_mut())?;
-        expression.accept(&mut compiler)?;
-        let ir = compiler.compile()?;
-        std::fs::write(format!("{}.ll", file), ir)?;
+        println!("Current line parsed into: {}", expression);
+        //expression.accept(&mut compiler)?;
+        //let ir = compiler.compile()?;
+        //std::fs::write(format!("{}.ll", file), ir)?;
         input = remainder.trim_mut();
     }
     Ok(())

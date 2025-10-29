@@ -1,11 +1,9 @@
-use std::fmt::Display;
-use anyhow::Result;
-use std::fmt::{Formatter, Result as FmtResult};
-
 use crate::{
     ast::{AstNode, BinaryAstNode},
     compiler::NodeCompiler,
 };
+use anyhow::Result;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 pub struct LogicalNot {
     pub value: Box<dyn AstNode>,
@@ -137,6 +135,24 @@ impl AstNode for GreaterEqual {
     }
 }
 
+impl Display for LogicalNot {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "Not({})", self.value)
+    }
+}
+
+impl Display for LogicalOr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "Or({}, {})", self.left, self.right)
+    }
+}
+
+impl Display for LogicalAnd {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "And({}, {})", self.left, self.right)
+    }
+}
+
 impl Display for Less {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "Less({}, {})", self.left, self.right)
@@ -158,23 +174,5 @@ impl Display for LessEqual {
 impl Display for GreaterEqual {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "GreaterEqual({}, {})", self.left, self.right)
-    }
-}
-
-impl Display for LogicalNot {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "Not({})", self.value)
-    }
-}
-
-impl Display for LogicalOr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "Or({}, {})", self.left, self.right)
-    }
-}
-
-impl Display for LogicalAnd {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "And({}, {})", self.left, self.right)
     }
 }

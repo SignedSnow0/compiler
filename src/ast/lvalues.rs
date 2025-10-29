@@ -29,15 +29,15 @@ impl AstNode for Assignment {
     }
 }
 
-impl Display for Assignment {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "Assignment({}, {})", self.left, self.right)
-    }
-}
-
 impl AstNode for Identifier {
     fn accept(&self, visitor: &mut dyn NodeCompiler) -> Result<()> {
         visitor.compile_identifier(self)
+    }
+}
+
+impl Display for Assignment {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "Assignment({}, {})", self.left, self.right)
     }
 }
 

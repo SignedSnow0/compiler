@@ -3,6 +3,7 @@ use anyhow::Result;
 
 pub mod arithmetic;
 pub mod boolean;
+pub mod control_flow;
 pub mod lvalues;
 pub mod rvalues;
 mod utils;
@@ -13,7 +14,23 @@ pub trait Parser {
     fn parse(string: String) -> Result<(Box<dyn AstNode>, String)>;
 }
 
-pub type Start = Declaration;
+pub type Start = Instruction;
+
+// <instruction> := <assignment>
+//                | <block>
+//                | <if>
+//                | <while>
+//                | <or>
+pub struct Instruction;
+
+// <block> := '{' {<Instruction>} '}'
+pub struct Block;
+
+// <if> := 'if' <expression> <block> ['else' <block>]
+pub struct If;
+
+// <while> := 'while' <expression> <block>
+pub struct While;
 
 // <declaration> = "let" <identifier>: <type> ["=" <or>] ";"
 // <type> = "i32"
@@ -52,7 +69,7 @@ pub struct Term;
 pub struct Not;
 
 // <term> = <number>
-//        | "("<or>")"
+//        | "("<instruction>")"
 pub struct Factor;
 
 #[cfg(test)]
@@ -74,6 +91,8 @@ mod tests {
             }),
         });
 
+        assert_eq!(format!("{}", expression), format!("{}", expected));
+
         let expression = "(12 + 5) / 4".to_owned();
         let (expression, _remainder) = Start::parse(expression).unwrap();
 
@@ -84,6 +103,8 @@ mod tests {
             }),
             right: Box::new(Integer { value: 4 }),
         });
+
+        assert_eq!(format!("{}", expression), format!("{}", expected));
 
         let expression = "3 * 4 + 2 * 5".to_owned();
         let (expression, _remainder) = Start::parse(expression).unwrap();
@@ -98,6 +119,8 @@ mod tests {
                 right: Box::new(Integer { value: 5 }),
             }),
         });
+
+        assert_eq!(format!("{}", expression), format!("{}", expected));
 
         let expression = "((3 + 5) * 2) - 4 / 2".to_owned();
         let (expression, _remainder) = Start::parse(expression).unwrap();
@@ -115,6 +138,8 @@ mod tests {
                 right: Box::new(Integer { value: 2 }),
             }),
         });
+
+        assert_eq!(format!("{}", expression), format!("{}", expected));
     }
 
     #[test]
@@ -133,6 +158,8 @@ mod tests {
             }),
         });
 
+        assert_eq!(format!("{}", expression), format!("{}", expected));
+
         let expression = "!(4 > 2 || 1 <= 0)".to_owned();
         let (expression, _remainder) = Start::parse(expression).unwrap();
 
@@ -148,6 +175,8 @@ mod tests {
                 }),
             }),
         });
+
+        assert_eq!(format!("{}", expression), format!("{}", expected));
 
         let expression = "5 + 3 > 2 * 4 || 1 && !0".to_owned();
         let (expression, _remainder) = Start::parse(expression).unwrap();
@@ -170,5 +199,7 @@ mod tests {
                 }),
             }),
         });
+
+        assert_eq!(format!("{}", expression), format!("{}", expected));
     }
 }

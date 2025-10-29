@@ -1,6 +1,6 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
-use anyhow::Result;
 use crate::{ast::AstNode, compiler::NodeCompiler};
+use anyhow::Result;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 pub trait RValue: AstNode {
     fn default() -> Box<dyn AstNode>;
