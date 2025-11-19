@@ -1,28 +1,37 @@
-use std::{collections::VecDeque, env, io::{BufRead, BufReader}};
+use std::{
+    collections::VecDeque,
+    env,
+    io::{BufRead, BufReader},
+};
 
-use compiler::AstWriter;
-use parser::{Program, Parser};
+use inkwell::context::Context;
+use parser::{Parser, Program};
+
+use crate::compiler::llvmcompiler::LlvmCompiler;
 
 mod ast;
-mod parser;
 mod compiler;
+mod parser;
 
 struct Lexer {
     line_buffer: VecDeque<String>,
-    reader: BufReader<std::fs::File>
+    reader: BufReader<std::fs::File>,
 }
 
 impl Lexer {
     pub fn new(reader: BufReader<std::fs::File>) -> Self {
-        Self{ line_buffer: VecDeque::default(),  reader }
+        Self {
+            line_buffer: VecDeque::default(),
+            reader,
+        }
     }
 
     pub fn pop_char(&mut self) -> Option<char> {
         if !self.ensure_buffer() {
-            return None
+            return None;
         }
 
-        if self.line_buffer.get(0).is_some_and(|i| { !i.is_empty() }) {
+        if self.line_buffer.get(0).is_some_and(|i| !i.is_empty()) {
             let item = self.line_buffer.get_mut(0).unwrap();
             let c = item.remove(0);
             if item.is_empty() {
@@ -37,7 +46,7 @@ impl Lexer {
 
     pub fn next_token(&mut self) -> Option<String> {
         if !self.ensure_buffer() {
-            return None
+            return None;
         }
 
         self.line_buffer.pop_front()
@@ -45,13 +54,13 @@ impl Lexer {
 
     pub fn next_while<T: Fn(char) -> bool>(&mut self, predicate: T) -> Option<String> {
         if !self.ensure_buffer() {
-            return None
+            return None;
         }
 
         match self.line_buffer.get_mut(0) {
             Some(item) => {
                 let mut token = String::default();
-                while  item.chars().next().is_some_and(|c| { predicate(c) }) {
+                while item.chars().next().is_some_and(|c| predicate(c)) {
                     token.push(item.remove(0));
                 }
 
@@ -59,19 +68,15 @@ impl Lexer {
                     self.line_buffer.remove(0);
                 }
 
-                if token.is_empty() {
-                    None
-                } else {
-                    Some(token)
-                }
+                if token.is_empty() { None } else { Some(token) }
             }
-            None => None
+            None => None,
         }
     }
 
     pub fn peek(&mut self) -> Option<&String> {
         if !self.ensure_buffer() {
-            return None
+            return None;
         }
 
         self.line_buffer.get(0)
@@ -90,12 +95,16 @@ impl Lexer {
             let mut buffer = String::default();
             let bytes_read = match self.reader.read_line(&mut buffer) {
                 Ok(x) => x,
-                Err(_) => return false
+                Err(_) => return false,
             };
             if bytes_read == 0 {
                 return false;
             }
-            self.line_buffer = buffer.trim().split_whitespace().map(|s| { s.to_owned() }).collect();
+            self.line_buffer = buffer
+                .trim()
+                .split_whitespace()
+                .map(|s| s.to_owned())
+                .collect();
         }
         true
     }
@@ -109,7 +118,10 @@ fn main() {
     }
     let file = std::fs::File::open(env::args().nth(1).unwrap());
     if file.is_err() {
-        eprintln!("Failed to open input file at {}", env::args().nth(1).unwrap());
+        eprintln!(
+            "Failed to open input file at {}",
+            env::args().nth(1).unwrap()
+        );
         std::process::exit(1);
     }
     let mut reader = Lexer::new(std::io::BufReader::new(file.unwrap()));
@@ -120,11 +132,25 @@ fn main() {
                 eprintln!("Error parsing program: unexpected \"{}\"", remainder);
                 return;
             }
-            let mut writer = AstWriter;
-            let _ = ast.accept(&mut writer);
+            //let mut writer = AstWriter;
+            //let _ = ast.accept(&mut writer);
+
+            let context = Context::create();
+            let mut compiler = LlvmCompiler::new(&context, &env::args().nth(1).unwrap());
+            match ast.accept(&mut compiler) {
+                Ok(_) => {            std::fs::write(
+                format!("{}{}", env::args().nth(1).unwrap(), ".ll"),
+                compiler.compile().unwrap(),
+            )
+            .unwrap();
+                }
+                Err(msg) => {
+                    eprintln!("Error compiling program: {}", msg);
+                }
+            }
         }
         Err(msg) => {
-            eprintln!(  "{}", msg);
+            eprintln!("{}", msg);
         }
     }
 }
