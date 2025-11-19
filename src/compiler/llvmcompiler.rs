@@ -1,11 +1,6 @@
-use crate::{
-    ast::{arithmetic::*, boolean::*, lvalues::*, rvalues::*},
-    compiler::NodeCompiler,
-};
+use crate::compiler::AstVisitor;
 use anyhow::Result;
-use inkwell::{
-    basic_block::BasicBlock, builder::Builder, context::Context, module::Module, values::IntValue,
-};
+use crate::ast::*;
 
 pub struct LlvmCompiler<'a> {
     pub context: &'a Context,
@@ -16,190 +11,157 @@ pub struct LlvmCompiler<'a> {
     blocks: Vec<BasicBlock<'a>>,
 }
 
-impl<'a> LlvmCompiler<'a> {
-    pub fn new(program_name: &str, context: &'a Context) -> Self {
+impl LlvmCompiler<'_> {
+    pub fn new(context: &Context, module_name: &str) -> LlvmCompiler {
+        let module = context.create_module(module_name);
         let builder = context.create_builder();
-        let module = context.create_module(program_name);
-
-        let i32_type = context.i32_type();
-        let fn_type = i32_type.fn_type(&[], false);
-        let function = module.add_function("main", fn_type, None);
-        let main_block = context.append_basic_block(function, "entry");
 
         LlvmCompiler {
             context,
             builder,
             module,
             intermediate_values: Vec::new(),
-            blocks: vec![main_block],
+            blocks: Vec::new(),
         }
     }
 }
 
-impl NodeCompiler for LlvmCompiler<'_> {
-    fn compile(&mut self) -> Result<String> {
-        self.builder.position_at_end(self.blocks.pop().unwrap());
-        let _ = self
-            .builder
-            .build_return(Some(&self.intermediate_values.pop().unwrap()));
-
-        Ok(self.module.print_to_string().to_string())
+impl AstVisitor for LlvmCompiler {
+    fn visit(&mut self, node: &Program) -> Result<()> {
+        todo!()
     }
 
-    fn compile_sum(&mut self, node: &Addition) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
+    fn visit_addition(&mut self, node: &Addition) -> Result<()> {
+        let left = {
+            node.left.accept(self)?;
+            self.intermediate_values.pop().unwrap()
+        };
+        let right = {
+            node.right.accept(self)?;
+            self.intermediate_values.pop().unwrap()
+        };
 
-        let right = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Left operand not found for addition"))?;
-        let left = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Right operand not found for addition"))?;
-
-        self.builder.position_at_end(*self.blocks.last().unwrap());
-        self.intermediate_values
-            .push(self.builder.build_int_add(left, right, "add").unwrap());
+        let result = self.builder.build_int_add(left, right, "addtmp");
+        self.intermediate_values.push(result);
 
         Ok(())
     }
 
-    fn compile_subtraction(&mut self, node: &Subtraction) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
+    fn visit_subtraction(&mut self, node: &Subtraction) -> Result<()> {
+        let left = {
+            node.left.accept(self)?;
+            self.intermediate_values.pop().unwrap()
+        };
+        let right = {
+            node.right.accept(self)?;
+            self.intermediate_values.pop().unwrap()
+        };
 
-        let right = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Left operand not found for subtraction"))?;
-        let left = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Right operand not found for subtraction"))?;
-
-        self.builder.position_at_end(*self.blocks.last().unwrap());
-        self.intermediate_values
-            .push(self.builder.build_int_sub(left, right, "sub").unwrap());
+        let result = self.builder.build_int_sub(left, right, "subtmp");
+        self.intermediate_values.push(result);
 
         Ok(())
     }
 
-    fn compile_multiplication(&mut self, node: &Multiplication) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
+    fn visit_multiplication(&mut self, node: &Multiplication) -> Result<()> {
+        let left = {
+            node.left.accept(self)?;
+            self.intermediate_values.pop().unwrap()
+        };
+        let right = {
+            node.right.accept(self)?;
+            self.intermediate_values.pop().unwrap()
+        };
 
-        let right = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Left operand not found for multiplication"))?;
-        let left = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Right operand not found for multiplication"))?;
-
-        self.builder.position_at_end(*self.blocks.last().unwrap());
-        self.intermediate_values
-            .push(self.builder.build_int_mul(left, right, "mul").unwrap());
+        let result = self.builder.build_int_mul(left, right, "multmp");
+        self.intermediate_values.push(result);
 
         Ok(())
     }
 
-    fn compile_division(&mut self, node: &Division) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
+    fn visit_division(&mut self, node: &Division) -> Result<()> {
+        let left = {
+            node.left.accept(self)?;
+            self.intermediate_values.pop().unwrap()
+        };
+        let right = {
+            node.right.accept(self)?;
+            self.intermediate_values.pop().unwrap()
+        };
 
-        let right = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Left operand not found for division"))?;
-        let left = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Right operand not found for division"))?;
-
-        self.builder.position_at_end(*self.blocks.last().unwrap());
-        self.intermediate_values.push(
-            self.builder
-                .build_int_signed_div(left, right, "div")
-                .unwrap(),
-        );
+        let result = self.builder.build_int_signed_div(left, right, "divtmp");
+        self.intermediate_values.push(result);
 
         Ok(())
     }
 
-    fn compile_logical_not(&mut self, node: &LogicalNot) -> Result<()> {
-        node.value.accept(self)?;
-
-        Ok(())
-    }
-
-    fn compile_logical_or(&mut self, node: &LogicalOr) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
-
-        Ok(())
-    }
-
-    fn compile_logical_and(&mut self, node: &LogicalAnd) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
-
-        Ok(())
-    }
-
-    fn compile_less(&mut self, node: &Less) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
-
-        Ok(())
-    }
-
-    fn compile_greater(&mut self, node: &Greater) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
-
-        Ok(())
-    }
-
-    fn compile_less_equal(&mut self, node: &LessEqual) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
-
-        Ok(())
-    }
-
-    fn compile_greater_equal(&mut self, node: &GreaterEqual) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
-
-        Ok(())
-    }
-
-    fn compile_assignment(&mut self, node: &Assignment) -> Result<()> {
-        node.left.accept(self)?;
-        node.right.accept(self)?;
-
-        let right = self
-            .intermediate_values
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("Left operand not found for division"))?;
-
-        self.builder.position_at_end(*self.blocks.last().unwrap());
-
-        Ok(())
-    }
-
-    fn compile_identifier(&mut self, node: &Identifier) -> Result<()> {
-        Ok(())
-    }
-
-    fn compile_int_lit(&mut self, node: &Integer) -> Result<()> {
-        let i32_type = self.context.i32_type();
-        let value = i32_type.const_int(node.value.try_into().unwrap(), false);
+    fn visit_integer(&mut self, node: &Integer) -> Result<()> {
+        let value = self.context.i32_type().const_int(node.value as u64, false);
         self.intermediate_values.push(value);
 
         Ok(())
+    }
+
+    fn visit_identifier(&mut self, node: &Identifier) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_declaration(&mut self, node: &Declaration) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_block(&mut self, node: &Block) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_function(&mut self, node: &Function) -> Result<()> {
+        let ret_type = self.context.i32_type();
+        let param_types: Vec<BasicTypeEnum> = node.parameters.iter()
+            .map(|_| self.context.i32_type().into())
+            .collect();
+
+        let fn_type = ret_type.fn_type(&param_types, false);
+        let function = self.module.add_function(&node.name, fn_type, None);
+        Ok(())
+    }
+
+    fn visit_if(&mut self, node: &If) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_while(&mut self, node: &While) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_return(&mut self, node: &Return) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_function_call(&mut self, node: &FunctionCall) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_or(&mut self, node: &Or) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_and(&mut self, node: &And) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_greater(&mut self, node: &Greater) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_lesser(&mut self, node: &Lesser) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_greater_equal(&mut self, node: &GreaterEqual) -> Result<()> {
+        todo!()
+    }
+
+    fn visit_lesser_equal(&mut self, node: &LesserEqual) -> Result<()> {
+        todo!()
     }
 }

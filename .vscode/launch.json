@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Run compiler",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}\\target\\debug\\compiler.exe",
+            "env": {
+                "RUST_BACKTRACE": "short",
+                "RUSTC_TOOLCHAIN": "C:\\Users\\Claudio\\.rustup\\toolchains\\stable-x86_64-pc-windows-msvc"
+            },
+            "args": [ "main.d" ],
+            "sourceMap": {},
+            "sourceLanguages": [
+                "rust"
+            ],
+            "preLaunchTask": "Build compiler"
+        }
+    ]
+}

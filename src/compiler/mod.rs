@@ -1,31 +1,218 @@
-use crate::ast::{
-    arithmetic::{Addition, Division, Multiplication, Subtraction},
-    boolean::{Greater, GreaterEqual, Less, LessEqual, LogicalAnd, LogicalNot, LogicalOr},
-    lvalues::{Assignment, Identifier},
-    rvalues::Integer,
-};
+use crate::ast::{Addition, And, Block, Declaration, Division, Function, FunctionCall, Greater, GreaterEqual, Identifier, If, Integer, Lesser, LesserEqual, Multiplication, Or, Program, Return, Subtraction, While};
 use anyhow::Result;
 
 pub mod llvmcompiler;
 
-pub trait NodeCompiler {
-    fn compile(&mut self) -> Result<String>;
+pub trait AstVisitor {
+    fn visit(&mut self, node: &Program) -> Result<()>;
 
-    fn compile_sum(&mut self, node: &Addition) -> Result<()>;
-    fn compile_subtraction(&mut self, node: &Subtraction) -> Result<()>;
-    fn compile_multiplication(&mut self, node: &Multiplication) -> Result<()>;
-    fn compile_division(&mut self, node: &Division) -> Result<()>;
+    fn visit_addition(&mut self, node: &Addition) -> Result<()>;
+    fn visit_subtraction(&mut self, node: &Subtraction) -> Result<()>;
+    fn visit_multiplication(&mut self, node: &Multiplication) -> Result<()>;
+    fn visit_division(&mut self, node: &Division) -> Result<()>;
+    fn visit_integer(&mut self, node: &Integer) -> Result<()>;
+    fn visit_identifier(&mut self, node: &Identifier) -> Result<()>;
+    fn visit_declaration(&mut self, node: &Declaration) -> Result<()>;
+    fn visit_block(&mut self, node: &Block) -> Result<()>;
+    fn visit_function(&mut self, node: &Function) -> Result<()>;
+    fn visit_if(&mut self, node: &If) -> Result<()>;
+    fn visit_while(&mut self, node: &While) -> Result<()>;
+    fn visit_return(&mut self, node: &Return) -> Result<()>;
+    fn visit_function_call(&mut self, node: &FunctionCall) -> Result<()>;
+    fn visit_or(&mut self, node: &Or) -> Result<()>;
+    fn visit_and(&mut self, node: &And) -> Result<()>;
+    fn visit_greater(&mut self, node: &Greater) -> Result<()>;
+    fn visit_lesser(&mut self, node: &Lesser) -> Result<()>;
+    fn visit_greater_equal(&mut self, node: &GreaterEqual) -> Result<()>;
+    fn visit_lesser_equal(&mut self, node: &LesserEqual) -> Result<()>;
+}
 
-    fn compile_logical_not(&mut self, node: &LogicalNot) -> Result<()>;
-    fn compile_logical_or(&mut self, node: &LogicalOr) -> Result<()>;
-    fn compile_logical_and(&mut self, node: &LogicalAnd) -> Result<()>;
-    fn compile_less(&mut self, node: &Less) -> Result<()>;
-    fn compile_greater(&mut self, node: &Greater) -> Result<()>;
-    fn compile_less_equal(&mut self, node: &LessEqual) -> Result<()>;
-    fn compile_greater_equal(&mut self, node: &GreaterEqual) -> Result<()>;
+pub struct AstWriter;
 
-    fn compile_assignment(&mut self, node: &Assignment) -> Result<()>;
-    fn compile_identifier(&mut self, node: &Identifier) -> Result<()>;
+impl AstVisitor for AstWriter {
+    fn visit(&mut self, node: &Program) -> Result<()> {
+        print!("Program(");
+        for (i, child) in node.nodes.iter().enumerate() {
+            child.accept(self)?;
+            if i < node.nodes.len() - 1 {
+                print!(", ");
+            }
+        }
+        print!(")");
+        Ok(())
+    }
 
-    fn compile_int_lit(&mut self, node: &Integer) -> Result<()>;
+    fn visit_addition(&mut self, node: &Addition) -> Result<()> {
+        print!("Addition(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_subtraction(&mut self, node: &Subtraction) -> Result<()> {
+        print!("Subtraction(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_multiplication(&mut self, node: &Multiplication) -> Result<()> {
+        print!("Multiplication(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_division(&mut self, node: &Division) -> Result<()> {
+        print!( "Division(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_integer(&mut self, node: &Integer) -> Result<()> {
+        print!("Integer({})", node.value);
+        Ok(())
+    }
+
+    fn visit_identifier(&mut self, node: &Identifier) -> Result<()> {
+        print!("Identifier({})", node.name);
+        Ok(())
+    }
+
+    fn visit_declaration(&mut self, node: &Declaration) -> Result<()> {
+        print!("Declaration({}, {}, ", node.name, node.type_name);
+        node.value.accept(self)?;
+        print!(")");
+        Ok(())
+    }
+
+    fn visit_block(&mut self, node: &Block) -> Result<()> {
+        print!("Block(");
+        for (i, child) in node.nodes.iter().enumerate() {
+            child.accept(self)?;
+            if i < node.nodes.len() - 1 {
+                print!(", ");
+            }
+        }
+        print!(")");
+        Ok(())
+    }
+
+    fn visit_function(&mut self, node: &Function) -> Result<()> {
+        print!("Function({}, [", node.name);
+        for (i, param) in node.parameters.iter().enumerate() {
+            print!("({}, {})", param.name, param.type_name);
+            if i < node.parameters.len() - 1 {
+                print!(", ");
+            }
+        }
+        print!("-> {}], ", node.return_type);
+        node.body.accept(self)?;
+        print!(")");
+        Ok(())
+    }
+
+    fn visit_if(&mut self, node: &If) -> Result<()> {
+        print!("If(");
+        node.condition.accept(self)?;
+        print!(", ");
+        node.then_block.accept(self)?;
+        if let Some(else_block) = &node.else_block {
+            print!(", ");
+            else_block.accept(self)?;
+        }
+        print!(")");
+        Ok(())
+    }
+
+    fn visit_while(&mut self, node: &While) -> Result<()> {
+        print!("While(");
+        node.condition.accept(self)?;
+        print!(", ");
+        node.block.accept(self)?;
+        print!(")");
+        Ok(())
+    }
+
+    fn visit_return(&mut self, node: &Return) -> Result<()> {
+        print!("Return(");
+        node.value.accept(self)?;
+        print!(")");
+        Ok(())
+    }
+
+    fn visit_function_call(&mut self, node: &FunctionCall) -> Result<()> {
+        print!("FunctionCall({}, [", node.name);
+        for (i, arg) in node.arguments.iter().enumerate() {
+            arg.accept(self)?;
+            if i < node.arguments.len() - 1 {
+                print!(", ");
+            }
+        }
+        print!("])");
+        Ok(())
+    }
+
+    fn visit_or(&mut self, node: &Or) -> Result<()> {
+        print!("Or(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_and(&mut self, node: &And) -> Result<()> {
+        print!("And(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_greater(&mut self, node: &Greater) -> Result<()> {
+        print!("Greater(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_lesser(&mut self, node: &Lesser) -> Result<()> {
+        print!("Lesser(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_greater_equal(&mut self, node: &GreaterEqual) -> Result<()> {
+        print!("GreaterEqual(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
+
+    fn visit_lesser_equal(&mut self, node: &LesserEqual) -> Result<()> {
+        print!("LesserEqual(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!( ")");
+        Ok(())
+    }
 }
