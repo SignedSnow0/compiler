@@ -1,5 +1,5 @@
+use crate::compiler::AstVisitor;
 use anyhow::Result;
-use crate::{compiler::AstVisitor};
 
 pub trait AstNode {
     fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()>;
@@ -7,48 +7,52 @@ pub trait AstNode {
 
 pub trait LiteralAstNode<T> {
     fn new(value: T) -> Box<dyn AstNode>
-    where Self: Sized;
+    where
+        Self: Sized;
 }
 
 pub trait BinaryAstNode: AstNode {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized;
+    where
+        Self: Sized;
 }
 
 pub struct Or {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct And {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct Greater {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct Lesser {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct GreaterEqual {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 pub struct LesserEqual {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 impl BinaryAstNode for Or {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -60,8 +64,10 @@ impl AstNode for Or {
 
 impl BinaryAstNode for And {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -73,8 +79,10 @@ impl AstNode for And {
 
 impl BinaryAstNode for Greater {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -86,8 +94,10 @@ impl AstNode for Greater {
 
 impl BinaryAstNode for Lesser {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -99,8 +109,10 @@ impl AstNode for Lesser {
 
 impl BinaryAstNode for GreaterEqual {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -112,8 +124,10 @@ impl AstNode for GreaterEqual {
 
 impl BinaryAstNode for LesserEqual {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -124,12 +138,12 @@ impl AstNode for LesserEqual {
 }
 
 pub struct Program {
-    pub nodes: Vec<Box<dyn AstNode>>
+    pub nodes: Vec<Box<dyn AstNode>>,
 }
 
 impl Program {
     pub fn new() -> Box<Program> {
-        Box::new(Self{ nodes: vec![] })
+        Box::new(Self { nodes: vec![] })
     }
 
     pub fn add_node(&mut self, node: Box<dyn AstNode>) {
@@ -144,34 +158,34 @@ impl AstNode for Program {
 }
 
 pub struct Identifier {
-    pub name: String
+    pub name: String,
 }
 
 pub struct Function {
     pub name: String,
     pub parameters: Vec<Parameter>,
     pub return_type: String,
-    pub body: Box<dyn AstNode>
+    pub body: Box<dyn AstNode>,
 }
 
 pub struct If {
     pub condition: Box<dyn AstNode>,
     pub then_block: Box<dyn AstNode>,
-    pub else_block: Option<Box<dyn AstNode>>
+    pub else_block: Option<Box<dyn AstNode>>,
 }
 
 pub struct While {
     pub condition: Box<dyn AstNode>,
-    pub block: Box<dyn AstNode>
+    pub block: Box<dyn AstNode>,
 }
 
 pub struct Return {
-    pub value: Box<dyn AstNode>
+    pub value: Box<dyn AstNode>,
 }
 
 pub struct FunctionCall {
     pub name: String,
-    pub arguments: Vec<Box<dyn AstNode>>
+    pub arguments: Vec<Box<dyn AstNode>>,
 }
 
 impl Return {
@@ -223,8 +237,16 @@ impl AstNode for While {
 }
 
 impl If {
-    pub fn new(condition: Box<dyn AstNode>, then_block: Box<dyn AstNode>, else_block: Option<Box<dyn AstNode>>) -> Box<dyn AstNode> {
-        Box::new(Self { condition, then_block, else_block })
+    pub fn new(
+        condition: Box<dyn AstNode>,
+        then_block: Box<dyn AstNode>,
+        else_block: Option<Box<dyn AstNode>>,
+    ) -> Box<dyn AstNode> {
+        Box::new(Self {
+            condition,
+            then_block,
+            else_block,
+        })
     }
 }
 
@@ -235,8 +257,18 @@ impl AstNode for If {
 }
 
 impl Function {
-    pub fn new(name: String, parameters: Vec<Parameter>, return_type: String, body: Box<dyn AstNode>) -> Box<dyn AstNode> {
-        Box::new(Self { name, parameters, return_type, body })
+    pub fn new(
+        name: String,
+        parameters: Vec<Parameter>,
+        return_type: String,
+        body: Box<dyn AstNode>,
+    ) -> Box<dyn AstNode> {
+        Box::new(Self {
+            name,
+            parameters,
+            return_type,
+            body,
+        })
     }
 }
 
@@ -246,24 +278,45 @@ impl AstNode for Function {
     }
 }
 
+pub struct Assignment {
+    pub target: String,
+    pub value: Box<dyn AstNode>,
+}
+
+impl Assignment {
+    pub fn new(target: String, value: Box<dyn AstNode>) -> Box<dyn AstNode> {
+        Box::new(Self { target, value })
+    }
+}
+
+impl AstNode for Assignment {
+    fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
+        visitor.visit_assignment(&self)
+    }
+}
+
 pub struct Parameter {
     pub name: String,
-    pub type_name: String
+    pub type_name: String,
 }
 
 pub struct Integer {
-    pub value: i32
+    pub value: i32,
 }
 
 pub struct Declaration {
     pub name: String,
     pub type_name: String,
-    pub value: Box<dyn AstNode>
+    pub value: Box<dyn AstNode>,
 }
 
 impl Declaration {
     pub fn new(name: String, type_name: String, value: Box<dyn AstNode>) -> Box<dyn AstNode> {
-        Box::new(Self { name, type_name, value })
+        Box::new(Self {
+            name,
+            type_name,
+            value,
+        })
     }
 }
 
@@ -275,8 +328,10 @@ impl AstNode for Declaration {
 
 impl LiteralAstNode<i32> for Integer {
     fn new(value: i32) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self {value })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { value })
     }
 }
 
@@ -288,13 +343,15 @@ impl AstNode for Integer {
 
 pub struct Addition {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 impl BinaryAstNode for Addition {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -306,13 +363,15 @@ impl AstNode for Addition {
 
 pub struct Subtraction {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 impl BinaryAstNode for Subtraction {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -324,13 +383,15 @@ impl AstNode for Subtraction {
 
 pub struct Multiplication {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 impl BinaryAstNode for Multiplication {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -342,13 +403,15 @@ impl AstNode for Multiplication {
 
 pub struct Division {
     pub left: Box<dyn AstNode>,
-    pub right: Box<dyn AstNode>
+    pub right: Box<dyn AstNode>,
 }
 
 impl BinaryAstNode for Division {
     fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
-    where Self: Sized {
-        Box::new(Self{ left, right })
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
     }
 }
 
@@ -359,12 +422,12 @@ impl AstNode for Division {
 }
 
 pub struct Block {
-    pub nodes: Vec<Box<dyn AstNode>>
+    pub nodes: Vec<Box<dyn AstNode>>,
 }
 
 impl Block {
     pub fn new() -> Box<Block> {
-        Box::new(Self{ nodes: vec![] })
+        Box::new(Self { nodes: vec![] })
     }
 
     pub fn add_node(&mut self, node: Box<dyn AstNode>) {

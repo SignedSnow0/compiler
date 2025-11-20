@@ -1,4 +1,8 @@
-use crate::ast::{Addition, And, Block, Declaration, Division, Function, FunctionCall, Greater, GreaterEqual, Identifier, If, Integer, Lesser, LesserEqual, Multiplication, Or, Program, Return, Subtraction, While};
+use crate::ast::{
+    Addition, And, Assignment, AstNode, Block, Declaration, Division, Function, FunctionCall,
+    Greater, GreaterEqual, Identifier, If, Integer, Lesser, LesserEqual, Multiplication, Or,
+    Program, Return, Subtraction, While,
+};
 use anyhow::Result;
 
 pub mod llvmcompiler;
@@ -25,6 +29,7 @@ pub trait AstVisitor {
     fn visit_lesser(&mut self, node: &Lesser) -> Result<()>;
     fn visit_greater_equal(&mut self, node: &GreaterEqual) -> Result<()>;
     fn visit_lesser_equal(&mut self, node: &LesserEqual) -> Result<()>;
+    fn visit_assignment(&mut self, node: &Assignment) -> Result<()>;
 }
 
 pub struct AstWriter;
@@ -47,7 +52,7 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
@@ -56,7 +61,7 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
@@ -65,16 +70,16 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
     fn visit_division(&mut self, node: &Division) -> Result<()> {
-        print!( "Division(");
+        print!("Division(");
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
@@ -167,7 +172,7 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
@@ -176,7 +181,7 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
@@ -185,7 +190,7 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
@@ -194,7 +199,7 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
@@ -203,7 +208,7 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
         Ok(())
     }
 
@@ -212,7 +217,15 @@ impl AstVisitor for AstWriter {
         node.left.accept(self)?;
         print!(", ");
         node.right.accept(self)?;
-        print!( ")");
+        print!(")");
+        Ok(())
+    }
+
+    fn visit_assignment(&mut self, node: &Assignment) -> Result<()> {
+        print!("Assignment({}, ", node.target);
+        node.accept(self)?;
+        print!(")");
         Ok(())
     }
 }
+
