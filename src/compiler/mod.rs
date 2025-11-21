@@ -228,4 +228,3 @@ impl AstVisitor for AstWriter {
         Ok(())
     }
 }
-
