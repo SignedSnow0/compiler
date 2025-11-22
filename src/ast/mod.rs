@@ -26,6 +26,11 @@ pub struct Program {
     pub nodes: Vec<Box<dyn AstNode>>,
 }
 
+pub struct Typedef {
+    pub name: String,
+    pub fields: Vec<Parameter>,
+}
+
 pub struct Declaration {
     pub name: String,
     pub type_name: String,
@@ -74,6 +79,16 @@ pub struct Or {
 }
 
 pub struct And {
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
+}
+
+pub struct Equality {
+    pub left: Box<dyn AstNode>,
+    pub right: Box<dyn AstNode>,
+}
+
+pub struct Inequality {
     pub left: Box<dyn AstNode>,
     pub right: Box<dyn AstNode>,
 }

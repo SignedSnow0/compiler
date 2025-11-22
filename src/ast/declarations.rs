@@ -1,8 +1,20 @@
 use crate::{
-    ast::{AstNode, Declaration, Function, Parameter},
+    ast::{AstNode, Declaration, Function, Parameter, Typedef},
     compiler::AstVisitor,
 };
 use anyhow::Result;
+
+impl Typedef {
+    pub fn new(name: String, fields: Vec<Parameter>) -> Box<dyn AstNode> {
+        Box::new(Self { name, fields })
+    }
+}
+
+impl AstNode for Typedef {
+    fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
+        visitor.visit_typedef(self)
+    }
+}
 
 impl Declaration {
     pub fn new(name: String, type_name: String, value: Box<dyn AstNode>) -> Box<dyn AstNode> {

@@ -13,8 +13,11 @@ pub trait Parser {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>>;
 }
 
-// <program> := {{<declaration>}{<function>}}
+// <program> := {{typedef}{<declaration>}{<function>}}
 pub struct Program;
+
+// <typedef> := "struct"<identifier>"{"{<identifier>":"<type>";"}"}
+struct Typedef;
 
 // <declaration> := "let"<identifier>":"<type>["="<or>];
 struct Declaration;
@@ -53,6 +56,10 @@ pub struct Or;
 //       | <and>"&&"<relation>
 pub struct And;
 
+// <equality> = <relation>"=="<relation>
+//            | <relation>"!="<relation>
+pub struct Equality;
+
 // <relation> = <expression>
 //            | <relation>"<"<expression>
 //            | <relation>">"<expression>
@@ -70,12 +77,16 @@ struct Term;
 
 // <factor> := <integer>
 //           | <identifier> TODO: stesso starter set
+//           | <member_access>
 //           | <function_call>
 //           | "("<or>")"
 struct Factor;
 
 // <function_call> := <identifier>"(" [<or> {","<or>} ] ")"
 struct FunctionCall;
+
+// <member_access> := <identifier>"."<identifier>
+struct MemberAccess;
 
 // <parameter> := <identifier>":"<type>
 
@@ -91,6 +102,8 @@ impl Parser for Program {
                 program.add_node(Declaration::parse(lexer)?);
             } else if lexer.peek_and(|s| s.starts_with("fn")) {
                 program.add_node(Function::parse(lexer)?);
+            } else if lexer.peek_and(|s| s == "struct") {
+                program.add_node(Typedef::parse(lexer)?);
             } else {
                 return Err(anyhow!("Unexpected token: \"{}\"", lexer.peek().unwrap()));
             }

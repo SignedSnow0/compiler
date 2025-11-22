@@ -15,15 +15,15 @@ mod parser;
 
 struct Lexer {
     line_buffer: VecDeque<String>,
-    reader: BufReader<std::fs::File>,
+    reader: Box<dyn BufRead>,
     pub current_line: usize,
 }
 
 impl Lexer {
-    pub fn new(reader: BufReader<std::fs::File>) -> Self {
+    pub fn new(reader: Box<dyn BufRead>) -> Self {
         Self {
             line_buffer: VecDeque::default(),
-            reader,
+            reader: reader,
             current_line: 0,
         }
     }
@@ -139,7 +139,7 @@ fn main() {
         );
         std::process::exit(1);
     }
-    let mut reader = Lexer::new(std::io::BufReader::new(file.unwrap()));
+    let mut reader = Lexer::new(Box::new(std::io::BufReader::new(file.unwrap())));
     match Program::parse(&mut reader) {
         Ok(ast) => {
             if reader.peek().is_some() {

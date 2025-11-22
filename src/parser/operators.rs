@@ -2,7 +2,8 @@ use crate::{
     Lexer,
     ast::{self, AstNode, BinaryAstNode, LiteralAstNode},
     parser::{
-        And, Expression, Factor, FunctionCall, Or, Parser, Relation, Term, utils::parse_identifier,
+        And, Equality, Expression, Factor, FunctionCall, Or, Parser, Relation, Term,
+        utils::parse_identifier,
     },
 };
 use anyhow::{Result, anyhow};
@@ -32,13 +33,41 @@ impl Parser for Or {
 
 impl Parser for And {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        let mut left = Relation::parse(lexer)?;
+        let mut left = Equality::parse(lexer)?;
         while lexer.peek_and(|s| s == "&&") {
             match lexer.peek() {
                 Some(val) if val == "&&" => {
                     let _ = lexer.next_token();
-                    let right = Relation::parse(lexer)?;
+                    let right = Equality::parse(lexer)?;
                     left = ast::And::new(left, right);
+                }
+                _ => {
+                    return Err(anyhow!(
+                        "Error parsing expression: unexpected token \"{:?}\"",
+                        lexer.peek()
+                    ));
+                }
+            }
+        }
+
+        Ok(left)
+    }
+}
+
+impl Parser for Equality {
+    fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
+        let mut left = Relation::parse(lexer)?;
+        while lexer.peek_and(|s| s == "==" || s == "!=") {
+            match lexer.peek() {
+                Some(val) if val == "==" => {
+                    let _ = lexer.next_token();
+                    let right = Relation::parse(lexer)?;
+                    left = ast::Equality::new(left, right);
+                }
+                Some(val) if val == "!=" => {
+                    let _ = lexer.next_token();
+                    let right = Relation::parse(lexer)?;
+                    left = ast::Inequality::new(left, right);
                 }
                 _ => {
                     return Err(anyhow!(

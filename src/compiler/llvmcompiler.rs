@@ -449,6 +449,78 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
+    fn visit_equality(&mut self, node: &Equality) -> Result<()> {
+        let left = {
+            node.left.accept(self)?;
+            match self.intermediate_values.last().unwrap().get_type() {
+                IntType(_) => self.intermediate_values.pop().unwrap().into_int_value(),
+                PointerType(_) => {
+                    let value = self.intermediate_values.pop().unwrap().into_pointer_value();
+                    self.builder
+                        .build_load(self.context.i32_type(), value, "")?
+                        .into_int_value()
+                }
+                _ => return Err(anyhow!("Unknown type conversion")),
+            }
+        };
+        let right = {
+            node.right.accept(self)?;
+            match self.intermediate_values.last().unwrap().get_type() {
+                IntType(_) => self.intermediate_values.pop().unwrap().into_int_value(),
+                PointerType(_) => {
+                    let value = self.intermediate_values.pop().unwrap().into_pointer_value();
+                    self.builder
+                        .build_load(self.context.i32_type(), value, "")?
+                        .into_int_value()
+                }
+                _ => return Err(anyhow!("Unknown type conversion")),
+            }
+        };
+
+        let result = self
+            .builder
+            .build_int_compare(inkwell::IntPredicate::EQ, left, right, "")?;
+        self.intermediate_values.push(result.into());
+
+        Ok(())
+    }
+
+    fn visit_inequality(&mut self, node: &Inequality) -> Result<()> {
+        let left = {
+            node.left.accept(self)?;
+            match self.intermediate_values.last().unwrap().get_type() {
+                IntType(_) => self.intermediate_values.pop().unwrap().into_int_value(),
+                PointerType(_) => {
+                    let value = self.intermediate_values.pop().unwrap().into_pointer_value();
+                    self.builder
+                        .build_load(self.context.i32_type(), value, "")?
+                        .into_int_value()
+                }
+                _ => return Err(anyhow!("Unknown type conversion")),
+            }
+        };
+        let right = {
+            node.right.accept(self)?;
+            match self.intermediate_values.last().unwrap().get_type() {
+                IntType(_) => self.intermediate_values.pop().unwrap().into_int_value(),
+                PointerType(_) => {
+                    let value = self.intermediate_values.pop().unwrap().into_pointer_value();
+                    self.builder
+                        .build_load(self.context.i32_type(), value, "")?
+                        .into_int_value()
+                }
+                _ => return Err(anyhow!("Unknown type conversion")),
+            }
+        };
+
+        let result = self
+            .builder
+            .build_int_compare(inkwell::IntPredicate::NE, left, right, "")?;
+        self.intermediate_values.push(result.into());
+
+        Ok(())
+    }
+
     fn visit_greater(&mut self, node: &Greater) -> Result<()> {
         let left = {
             node.left.accept(self)?;
@@ -615,5 +687,11 @@ impl AstVisitor for LlvmCompiler<'_> {
         } else {
             Err(anyhow!("Cannot assing value to undefined variable"))
         }
+    }
+
+    fn visit_typedef(&mut self, node: &Typedef) -> Result<()> {
+        let _struct_type = self.context.opaque_struct_type(&node.name);
+
+        Ok(())
     }
 }

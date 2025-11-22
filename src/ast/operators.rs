@@ -1,7 +1,7 @@
 use crate::{
     ast::{
-        Addition, And, AstNode, BinaryAstNode, Division, Greater, GreaterEqual, Lesser,
-        LesserEqual, Multiplication, Or, Subtraction,
+        Addition, And, AstNode, BinaryAstNode, Division, Equality, Greater, GreaterEqual,
+        Inequality, Lesser, LesserEqual, Multiplication, Or, Subtraction,
     },
     compiler::AstVisitor,
 };
@@ -34,6 +34,36 @@ impl BinaryAstNode for And {
 impl AstNode for And {
     fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
         visitor.visit_and(self)
+    }
+}
+
+impl BinaryAstNode for Equality {
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
+    }
+}
+
+impl AstNode for Equality {
+    fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
+        visitor.visit_equality(self)
+    }
+}
+
+impl BinaryAstNode for Inequality {
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { left, right })
+    }
+}
+
+impl AstNode for Inequality {
+    fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
+        visitor.visit_inequality(self)
     }
 }
 

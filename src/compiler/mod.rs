@@ -1,7 +1,7 @@
 use crate::ast::{
-    Addition, And, Assignment, AstNode, Block, Declaration, Division, Function, FunctionCall,
-    Greater, GreaterEqual, Identifier, If, Integer, Lesser, LesserEqual, Multiplication, Or,
-    Program, Return, Subtraction, While,
+    Addition, And, Assignment, AstNode, Block, Declaration, Division, Equality, Function,
+    FunctionCall, Greater, GreaterEqual, Identifier, If, Inequality, Integer, Lesser, LesserEqual,
+    Multiplication, Or, Program, Return, Subtraction, Typedef, While,
 };
 use anyhow::Result;
 
@@ -25,11 +25,14 @@ pub trait AstVisitor {
     fn visit_function_call(&mut self, node: &FunctionCall) -> Result<()>;
     fn visit_or(&mut self, node: &Or) -> Result<()>;
     fn visit_and(&mut self, node: &And) -> Result<()>;
+    fn visit_equality(&mut self, node: &Equality) -> Result<()>;
+    fn visit_inequality(&mut self, node: &Inequality) -> Result<()>;
     fn visit_greater(&mut self, node: &Greater) -> Result<()>;
     fn visit_lesser(&mut self, node: &Lesser) -> Result<()>;
     fn visit_greater_equal(&mut self, node: &GreaterEqual) -> Result<()>;
     fn visit_lesser_equal(&mut self, node: &LesserEqual) -> Result<()>;
     fn visit_assignment(&mut self, node: &Assignment) -> Result<()>;
+    fn visit_typedef(&mut self, node: &Typedef) -> Result<()>;
 }
 
 pub struct AstWriter;
@@ -185,6 +188,24 @@ impl AstVisitor for AstWriter {
         Ok(())
     }
 
+    fn visit_equality(&mut self, node: &Equality) -> Result<()> {
+        print!("Equality(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!(")");
+        Ok(())
+    }
+
+    fn visit_inequality(&mut self, node: &Inequality) -> Result<()> {
+        print!("Inequality(");
+        node.left.accept(self)?;
+        print!(", ");
+        node.right.accept(self)?;
+        print!(")");
+        Ok(())
+    }
+
     fn visit_greater(&mut self, node: &Greater) -> Result<()> {
         print!("Greater(");
         node.left.accept(self)?;
@@ -225,6 +246,18 @@ impl AstVisitor for AstWriter {
         print!("Assignment({}, ", node.target);
         node.accept(self)?;
         print!(")");
+        Ok(())
+    }
+
+    fn visit_typedef(&mut self, node: &Typedef) -> Result<()> {
+        print!("Typedef({}, [", node.name);
+        for (i, field) in node.fields.iter().enumerate() {
+            print!("({}, {})", field.name, field.type_name);
+            if i < node.fields.len() - 1 {
+                print!(", ");
+            }
+        }
+        print!("])");
         Ok(())
     }
 }

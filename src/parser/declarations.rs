@@ -2,11 +2,46 @@ use crate::{
     Lexer,
     ast::{self, AstNode, LiteralAstNode},
     parser::{
-        Block, Declaration, Function, Or, Parser,
+        Block, Declaration, Function, Or, Parser, Typedef,
         utils::{parse_identifier, parse_parameter},
     },
 };
 use anyhow::{Result, anyhow};
+
+impl Parser for Typedef {
+    fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
+        if !lexer.next_token().is_some_and(|s| s == "struct") {
+            return Err(anyhow!("Error parsing typedef: missing \"struct\""));
+        }
+
+        let name = parse_identifier(lexer)?;
+        if !lexer.peek_and(|s| s == "{") {
+            return Err(anyhow!("Error parsing typedef: missing \'{{\'"));
+        }
+        lexer.pop_char();
+
+        let mut fields = Vec::new();
+        while !lexer.peek_and(|s| s.starts_with("}")) {
+            let (field_name, field_type) = parse_parameter(lexer)?;
+            if !lexer.peek_and(|s| s == ";") {
+                return Err(anyhow!("Error parsing typedef: missing \';\'"));
+            }
+            lexer.pop_char();
+
+            fields.push(ast::Parameter {
+                name: field_name,
+                type_name: field_type,
+            });
+        }
+
+        if !lexer.peek_and(|s| s == "}") {
+            return Err(anyhow!("Error parsing typedef: missing \'}}\'"));
+        }
+        lexer.pop_char();
+
+        Ok(ast::Typedef::new(name, fields))
+    }
+}
 
 impl Parser for Function {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
