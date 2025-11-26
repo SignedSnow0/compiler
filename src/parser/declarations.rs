@@ -1,14 +1,15 @@
 use crate::{
     Lexer,
-    ast::{self, AstNode, LiteralAstNode},
+    ast::{self, AstNode},
     parser::{
-        Block, Declaration, Function, Or, Parser, Typedef,
+        Block, Declaration, Function, Or, Parser, StructTypedef,
         utils::{parse_identifier, parse_parameter},
     },
 };
 use anyhow::{Result, anyhow};
+use std::collections::HashMap;
 
-impl Parser for Typedef {
+impl Parser for StructTypedef {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         if !lexer.next_token().is_some_and(|s| s == "struct") {
             return Err(anyhow!("Error parsing typedef: missing \"struct\""));
@@ -20,7 +21,7 @@ impl Parser for Typedef {
         }
         lexer.pop_char();
 
-        let mut fields = Vec::new();
+        let mut fields = HashMap::new();
         while !lexer.peek_and(|s| s.starts_with("}")) {
             let (field_name, field_type) = parse_parameter(lexer)?;
             if !lexer.peek_and(|s| s == ";") {
@@ -28,10 +29,14 @@ impl Parser for Typedef {
             }
             lexer.pop_char();
 
-            fields.push(ast::Parameter {
-                name: field_name,
-                type_name: field_type,
-            });
+            if fields.contains_key(&field_name) {
+                return Err(anyhow!(
+                    "Error parsing typedef: duplicate field name \"{}\"",
+                    field_name
+                ));
+            }
+
+            fields.insert(field_name, field_type);
         }
 
         if !lexer.peek_and(|s| s == "}") {
@@ -39,7 +44,7 @@ impl Parser for Typedef {
         }
         lexer.pop_char();
 
-        Ok(ast::Typedef::new(name, fields))
+        Ok(ast::StructTypedef::new(name, fields))
     }
 }
 
@@ -55,25 +60,33 @@ impl Parser for Function {
         }
         lexer.pop_char();
 
-        let mut parameters = Vec::new();
+        let mut parameters = HashMap::new();
         while !lexer.peek_and(|s| s.starts_with(")")) {
-            let (name, type_name) = parse_parameter(lexer)?;
-            parameters.push(ast::Parameter { name, type_name });
+            let (name, p_type) = parse_parameter(lexer)?;
+            if parameters.contains_key(&name) {
+                return Err(anyhow!(
+                    "Error parsing function: duplicate parameter name \"{}\"",
+                    name
+                ));
+            }
+            parameters.insert(name, p_type);
         }
         lexer.pop_char();
 
-        let mut return_type = "void".to_string();
-        if lexer.peek_and(|s| s == ":") {
+        let return_type = if lexer.peek_and(|s| s == ":") {
             let _ = lexer.next_token();
             match lexer.next_token() {
-                Some(type_name) => {
-                    return_type = type_name;
-                }
+                Some(type_name) => match type_name.as_str() {
+                    "i32" => Some(ast::Type::Integer32),
+                    _ => Some(ast::Type::Custom(type_name)),
+                },
                 None => {
                     return Err(anyhow!("Error parsing function: missing return type"));
                 }
             }
-        }
+        } else {
+            None
+        };
 
         let body = Block::parse(lexer)?;
         Ok(ast::Function::new(name, parameters, return_type, body))
@@ -87,29 +100,28 @@ impl Parser for Declaration {
         }
 
         let identifier = parse_identifier(lexer)?;
-        if !lexer.next_token().is_some_and(|s| s == ":") {
-            return Err(anyhow!("Error parsing declaration: missing \":\""));
-        }
-
-        let var_type = parse_identifier(lexer)?;
-        if var_type != "i32" {
-            return Err(anyhow!(
-                "Error parsing declaration: unsupported type \"{}\"",
-                var_type
-            ));
-        }
+        let d_type = if lexer.peek_and(|s| s == ":") {
+            lexer.pop_char();
+            let type_name = parse_identifier(lexer)?;
+            match type_name.as_str() {
+                "i32" => Some(ast::Type::Integer32),
+                _ => Some(ast::Type::Custom(type_name)),
+            }
+        } else {
+            None
+        };
 
         let expression = if lexer.peek_and(|s| s == "=") {
             lexer.next_token();
-            Or::parse(lexer)?
+            Some(Or::parse(lexer)?)
         } else {
-            ast::Integer::new(0)
+            None
         };
 
         if !lexer.next_token().is_some_and(|s| s == ";") {
             return Err(anyhow!("Error parsing declaration: missing \";\""));
         }
 
-        Ok(ast::Declaration::new(identifier, var_type, expression))
+        Ok(ast::Declaration::new(identifier, d_type, expression))
     }
 }

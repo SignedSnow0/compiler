@@ -1,5 +1,6 @@
 use crate::compiler::AstVisitor;
 use anyhow::Result;
+use std::collections::HashMap;
 
 pub mod declarations;
 pub mod instructions;
@@ -26,21 +27,21 @@ pub struct Program {
     pub nodes: Vec<Box<dyn AstNode>>,
 }
 
-pub struct Typedef {
+pub struct StructTypedef {
     pub name: String,
-    pub fields: Vec<Parameter>,
+    pub fields: HashMap<String, Type>,
 }
 
 pub struct Declaration {
     pub name: String,
-    pub type_name: String,
-    pub value: Box<dyn AstNode>,
+    pub d_type: Option<Type>,
+    pub value: Option<Box<dyn AstNode>>,
 }
 
 pub struct Function {
     pub name: String,
-    pub parameters: Vec<Parameter>,
-    pub return_type: String,
+    pub parameters: HashMap<String, Type>,
+    pub return_type: Option<Type>,
     pub body: Box<dyn AstNode>,
 }
 
@@ -137,13 +138,13 @@ pub struct Identifier {
     pub name: String,
 }
 
-pub struct Parameter {
-    pub name: String,
-    pub type_name: String,
-}
-
 pub struct Integer {
     pub value: i32,
+}
+
+pub enum Type {
+    Integer32,
+    Custom(String),
 }
 
 impl Program {

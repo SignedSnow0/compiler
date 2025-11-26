@@ -17,7 +17,7 @@ pub trait Parser {
 pub struct Program;
 
 // <typedef> := "struct"<identifier>"{"{<identifier>":"<type>";"}"}
-struct Typedef;
+struct StructTypedef;
 
 // <declaration> := "let"<identifier>":"<type>["="<or>];
 struct Declaration;
@@ -103,7 +103,7 @@ impl Parser for Program {
             } else if lexer.peek_and(|s| s.starts_with("fn")) {
                 program.add_node(Function::parse(lexer)?);
             } else if lexer.peek_and(|s| s == "struct") {
-                program.add_node(Typedef::parse(lexer)?);
+                program.add_node(StructTypedef::parse(lexer)?);
             } else {
                 return Err(anyhow!("Unexpected token: \"{}\"", lexer.peek().unwrap()));
             }

@@ -1,11 +1,12 @@
 use crate::ast::{
     Addition, And, Assignment, AstNode, Block, Declaration, Division, Equality, Function,
     FunctionCall, Greater, GreaterEqual, Identifier, If, Inequality, Integer, Lesser, LesserEqual,
-    Multiplication, Or, Program, Return, Subtraction, Typedef, While,
+    Multiplication, Or, Program, Return, StructTypedef, Subtraction, Type, While,
 };
 use anyhow::Result;
 
 pub mod llvmcompiler;
+mod type_checker;
 
 pub trait AstVisitor {
     fn visit(&mut self, node: &Program) -> Result<()>;
@@ -32,7 +33,7 @@ pub trait AstVisitor {
     fn visit_greater_equal(&mut self, node: &GreaterEqual) -> Result<()>;
     fn visit_lesser_equal(&mut self, node: &LesserEqual) -> Result<()>;
     fn visit_assignment(&mut self, node: &Assignment) -> Result<()>;
-    fn visit_typedef(&mut self, node: &Typedef) -> Result<()>;
+    fn visit_typedef(&mut self, node: &StructTypedef) -> Result<()>;
 }
 
 pub struct AstWriter;
@@ -97,8 +98,22 @@ impl AstVisitor for AstWriter {
     }
 
     fn visit_declaration(&mut self, node: &Declaration) -> Result<()> {
-        print!("Declaration({}, {}, ", node.name, node.type_name);
-        node.value.accept(self)?;
+        let type_name = {
+            if let Some(t) = &node.d_type {
+                match t {
+                    Type::Integer32 => "i32",
+                    Type::Custom(name) => name.as_str(),
+                }
+            } else {
+                "None"
+            }
+        };
+        
+        print!("Declaration({}, {}, ", node.name, type_name);
+        match &node.value {
+            None => print!("None"),
+            Some(_) => (),
+        }
         print!(")");
         Ok(())
     }
@@ -117,13 +132,26 @@ impl AstVisitor for AstWriter {
 
     fn visit_function(&mut self, node: &Function) -> Result<()> {
         print!("Function({}, [", node.name);
-        for (i, param) in node.parameters.iter().enumerate() {
-            print!("({}, {})", param.name, param.type_name);
+        for (i, (name, param)) in node.parameters.iter().enumerate() {
+            let type_name = match param {
+                Type::Integer32 => "i32",
+                Type::Custom(custom_name) => custom_name.as_str(),
+            };
+            print!("({}, {})", name, type_name);
             if i < node.parameters.len() - 1 {
                 print!(", ");
             }
         }
-        print!("-> {}], ", node.return_type);
+        if let Some(return_type) = &node.return_type {
+            let return_type = match &return_type {
+                Type::Integer32 => "i32",
+                Type::Custom(custom_name) => custom_name.as_str(),
+            };
+            print!("-> {}], ", return_type);
+        } else {
+            print!("], None, ");
+        }
+
         node.body.accept(self)?;
         print!(")");
         Ok(())
@@ -249,10 +277,15 @@ impl AstVisitor for AstWriter {
         Ok(())
     }
 
-    fn visit_typedef(&mut self, node: &Typedef) -> Result<()> {
+    fn visit_typedef(&mut self, node: &StructTypedef) -> Result<()> {
         print!("Typedef({}, [", node.name);
-        for (i, field) in node.fields.iter().enumerate() {
-            print!("({}, {})", field.name, field.type_name);
+        for (i, (name, f_type)) in node.fields.iter().enumerate() {
+            let f_type = match f_type {
+                Type::Integer32 => "i32",
+                Type::Custom(custom_name) => custom_name.as_str(),
+            };
+            print!("({}, {})", name, f_type);
+
             if i < node.fields.len() - 1 {
                 print!(", ");
             }

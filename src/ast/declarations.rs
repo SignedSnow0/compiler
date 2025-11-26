@@ -1,26 +1,31 @@
 use crate::{
-    ast::{AstNode, Declaration, Function, Parameter, Typedef},
+    ast::{AstNode, Declaration, Function, StructTypedef, Type},
     compiler::AstVisitor,
 };
 use anyhow::Result;
+use std::collections::HashMap;
 
-impl Typedef {
-    pub fn new(name: String, fields: Vec<Parameter>) -> Box<dyn AstNode> {
+impl StructTypedef {
+    pub fn new(name: String, fields: HashMap<String, Type>) -> Box<dyn AstNode> {
         Box::new(Self { name, fields })
     }
 }
 
-impl AstNode for Typedef {
+impl AstNode for StructTypedef {
     fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
         visitor.visit_typedef(self)
     }
 }
 
 impl Declaration {
-    pub fn new(name: String, type_name: String, value: Box<dyn AstNode>) -> Box<dyn AstNode> {
+    pub fn new(
+        name: String,
+        d_type: Option<Type>,
+        value: Option<Box<dyn AstNode>>,
+    ) -> Box<dyn AstNode> {
         Box::new(Self {
             name,
-            type_name,
+            d_type,
             value,
         })
     }
@@ -35,8 +40,8 @@ impl AstNode for Declaration {
 impl Function {
     pub fn new(
         name: String,
-        parameters: Vec<Parameter>,
-        return_type: String,
+        parameters: HashMap<String, Type>,
+        return_type: Option<Type>,
         body: Box<dyn AstNode>,
     ) -> Box<dyn AstNode> {
         Box::new(Self {

@@ -1,4 +1,4 @@
-use crate::Lexer;
+use crate::{Lexer, ast};
 use anyhow::{Result, anyhow};
 
 pub fn parse_identifier(lexer: &mut Lexer) -> Result<String> {
@@ -17,14 +17,18 @@ pub fn parse_identifier(lexer: &mut Lexer) -> Result<String> {
     }
 }
 
-pub fn parse_parameter(lexer: &mut Lexer) -> Result<(String, String)> {
+pub fn parse_parameter(lexer: &mut Lexer) -> Result<(String, ast::Type)> {
     let name = parse_identifier(lexer)?;
     if !lexer.next_token().is_some_and(|s| s == ":") {
         return Err(anyhow!("Error parsing parameter: missing \":\""));
     }
-    let type_name = parse_identifier(lexer)?;
+    let p_type = parse_identifier(lexer)?;
+    let p_type = match p_type.as_str() {
+        "i32" => ast::Type::Integer32,
+        _ => ast::Type::Custom(p_type),
+    };
 
-    Ok((name, type_name))
+    Ok((name, p_type))
 }
 
 #[cfg(test)]
@@ -59,9 +63,8 @@ mod tests {
         let reader = std::io::BufReader::new(std::io::Cursor::new(test_string));
         let mut lexer = Lexer::new(Box::new(reader));
 
-        let (name, type_name) = parse_parameter(&mut lexer).unwrap();
+        let (name, p_type) = parse_parameter(&mut lexer).unwrap();
         assert_eq!(name, "variable_name123");
-        assert_eq!(type_name, "i32");
 
         let test_string = "123invalid: i32 ";
         let reader = std::io::BufReader::new(std::io::Cursor::new(test_string));

@@ -232,7 +232,11 @@ impl AstVisitor for LlvmCompiler<'_> {
     }
 
     fn visit_declaration(&mut self, node: &Declaration) -> Result<()> {
-        node.value.accept(self)?;
+        match &node.value {
+            None => return Err(anyhow!("Variable declaration must include an initial value")),
+            Some(value) => value.accept(self)?,
+        };
+
         let value = self.intermediate_values.pop().unwrap();
         let var = self
             .builder
@@ -280,13 +284,13 @@ impl AstVisitor for LlvmCompiler<'_> {
             .iter()
             .zip(function.get_params())
             .for_each(|(v, p)| {
-                self.builder.build_store(*v, p);
+                let _ = self.builder.build_store(*v, p);
             });
 
         let variables: HashMap<String, _> = node
             .parameters
             .iter()
-            .map(|p| p.name.clone())
+            .map(|(name, _)| name.clone())
             .zip(variables)
             .collect();
 
@@ -346,7 +350,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         let while_bb = self.context.append_basic_block(function, "while");
         let then_bb = self.context.append_basic_block(function, "then");
 
-        let instruction = self
+        let _instruction = self
             .builder
             .build_conditional_branch(expression, while_bb, then_bb)?;
 
@@ -358,7 +362,7 @@ impl AstVisitor for LlvmCompiler<'_> {
             self.intermediate_values.pop().unwrap().into_int_value()
         };
 
-        let instruction = self
+        let _instruction = self
             .builder
             .build_conditional_branch(expression, while_bb, then_bb)?;
 
@@ -689,7 +693,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         }
     }
 
-    fn visit_typedef(&mut self, node: &Typedef) -> Result<()> {
+    fn visit_typedef(&mut self, node: &StructTypedef) -> Result<()> {
         let _struct_type = self.context.opaque_struct_type(&node.name);
 
         Ok(())
