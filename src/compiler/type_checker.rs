@@ -225,6 +225,12 @@ impl Context {
         Context(HashMap::new())
     }
 
+    pub fn extend(&self, mappings: HashMap<VariableName, PolymorphicType>) -> Context {
+        let mut new_map = self.0.clone();
+        new_map.extend(mappings);
+        Context(new_map)
+    }
+
     pub fn generalise(&self, mono: &MonomorphicType) -> PolymorphicType {
         let quantifiers = Self::diff(mono.free_vars(), self.free_vars());
         let p_type = PolymorphicType::MonomorphicType(mono.clone());
@@ -247,6 +253,97 @@ impl Context {
     {
         let b: HashSet<T> = b.into_iter().collect();
         a.into_iter().filter(|item| !b.contains(item)).collect()
+    }
+}
+
+enum Expression {
+    Variable(String),
+    Application(Box<Expression>, Box<Expression>),
+    Abstraction(String, Box<Expression>),
+    Let(String, Box<Expression>, Box<Expression>),
+}
+
+pub fn m(
+    typEnv: &Context,
+    expr: &Expression,
+    m_type: &MonomorphicType,
+    generator: &mut TypeVariableGenerator,
+) -> Result<Substitution> {
+    match expr {
+        Expression::Variable(var_name) => match typEnv.0.get(var_name) {
+            Some(poly_type) => {
+                let instantiated_type = generator.instantiate(poly_type);
+                instantiated_type.unify(m_type)
+            }
+            None => Err(anyhow!("Undefined variable: {}", var_name)),
+        },
+        Expression::Abstraction(abs_name, expression) => {
+            let beta1 = MonomorphicType::Variable(generator.generate());
+            let beta2 = MonomorphicType::Variable(generator.generate());
+
+            let s1 = m_type.unify(&MonomorphicType::FunctionApplication(
+                "->".to_string(),
+                vec![beta1.clone(), beta2.clone()],
+            ))?;
+
+            let s2 = m(
+                &s1.apply_context(typEnv).extend(
+                    vec![(
+                        abs_name.clone(),
+                        s1.apply_poly(&PolymorphicType::MonomorphicType(beta1)),
+                    )]
+                    .into_iter()
+                    .collect(),
+                ),
+                expression,
+                &s1.apply_mono(&beta2),
+                generator,
+            )?;
+
+            Ok(s2.combine(&s1))
+        }
+        Expression::Application(expression, expression1) => {
+            let beta = MonomorphicType::Variable(generator.generate());
+
+            let s1 = m(
+                typEnv,
+                expression,
+                &MonomorphicType::FunctionApplication(
+                    "->".to_string(),
+                    vec![beta.clone(), m_type.clone()],
+                ),
+                generator,
+            )?;
+
+            let s2 = m(
+                &s1.apply_context(typEnv),
+                expression1,
+                &s1.apply_mono(&beta),
+                generator,
+            )?;
+
+            Ok(s2.combine(&s1))
+        }
+        Expression::Let(expr_name, expression, expression1) => {
+            let beta = MonomorphicType::Variable(generator.generate());
+
+            let s1 = m(typEnv, expression, &beta, generator)?;
+
+            let generalized_type = s1.apply_context(typEnv).generalise(&s1.apply_mono(&beta));
+
+            let s2 = m(
+                &s1.apply_context(typEnv).extend(
+                    vec![(expr_name.clone(), generalized_type)]
+                        .into_iter()
+                        .collect(),
+                ),
+                expression1,
+                &s1.apply_mono(m_type),
+                generator,
+            )?;
+
+            Ok(s2.combine(&s1))
+        }
     }
 }
 
@@ -581,5 +678,71 @@ mod tests {
             result.err().unwrap().to_string(),
             "Cannot unify application with different types: i32 vs bool"
         );
+    }
+
+    #[test]
+    fn test_m() {
+        let mut generator = TypeVariableGenerator::new();
+
+        let context = Context::new();
+        let mut mappings = HashMap::new();
+        mappings.insert(
+            "sum".to_string(),
+            PolymorphicType::MonomorphicType(MonomorphicType::FunctionApplication(
+                "->".to_string(),
+                vec![
+                    MonomorphicType::FunctionApplication("i32".to_string(), vec![]),
+                    MonomorphicType::FunctionApplication(
+                        "->".to_string(),
+                        vec![
+                            MonomorphicType::FunctionApplication("i32".to_string(), vec![]),
+                            MonomorphicType::FunctionApplication("i32".to_string(), vec![]),
+                        ],
+                    ),
+                ],
+            )),
+        );
+        mappings.insert(
+            "intlit".to_string(),
+            PolymorphicType::MonomorphicType(MonomorphicType::FunctionApplication(
+                "i32".to_string(),
+                vec![],
+            )),
+        );
+        let context = context.extend(mappings);
+
+        let expr = Expression::Let(
+            "x".to_string(),
+            Box::new(Expression::Application(
+                Box::new(Expression::Variable("sum".to_string())),
+                Box::new(Expression::Variable("intlit".to_string())),
+            )),
+            Box::new(Expression::Variable("x".to_string())),
+        );
+
+        let expected_type = MonomorphicType::Variable(generator.generate());
+
+        let substitution = m(&context, &expr, &expected_type, &mut generator).unwrap();
+
+        match substitution.mappings.get("t0") {
+            Some(MonomorphicType::FunctionApplication(origin_type, args)) => {
+                assert_eq!(origin_type, "->");
+                match &args[0] {
+                    MonomorphicType::FunctionApplication(origin_type, args) => {
+                        assert_eq!(origin_type, "i32");
+                        assert!(args.is_empty());
+                    }
+                    _ => panic!("Expected MonomorphicType::FunctionApplication"),
+                }
+                match &args[1] {
+                    MonomorphicType::FunctionApplication(origin_type, args) => {
+                        assert_eq!(origin_type, "i32");
+                        assert!(args.is_empty());
+                    }
+                    _ => panic!("Expected MonomorphicType::FunctionApplication"),
+                }
+            }
+            _ => panic!("Expected mapping for 't0' to be a FunctionApplicaton"),
+        }
     }
 }
