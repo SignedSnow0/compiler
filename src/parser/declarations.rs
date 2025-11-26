@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 impl Parser for StructTypedef {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if !lexer.next_token().is_some_and(|s| s == "struct") {
+        if lexer.next_token().is_none_or(|s| s != "struct") {
             return Err(anyhow!("Error parsing typedef: missing \"struct\""));
         }
 
@@ -50,7 +50,7 @@ impl Parser for StructTypedef {
 
 impl Parser for Function {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if !lexer.next_token().is_some_and(|s| s == "fn") {
+        if lexer.next_token().is_none_or(|s| s != "fn") {
             return Err(anyhow!("Error parsing function: missing \"fn\""));
         }
 
@@ -95,7 +95,7 @@ impl Parser for Function {
 
 impl Parser for Declaration {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if !lexer.next_token().is_some_and(|s| s == "let") {
+        if lexer.next_token().is_none_or(|s| s != "let") {
             return Err(anyhow!("Error parsing declaration: missing \"let\""));
         }
 
@@ -118,7 +118,7 @@ impl Parser for Declaration {
             None
         };
 
-        if !lexer.next_token().is_some_and(|s| s == ";") {
+        if lexer.next_token().is_none_or(|s| s != ";") {
             return Err(anyhow!("Error parsing declaration: missing \";\""));
         }
 

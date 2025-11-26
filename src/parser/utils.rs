@@ -3,8 +3,7 @@ use anyhow::{Result, anyhow};
 
 pub fn parse_identifier(lexer: &mut Lexer) -> Result<String> {
     if let Some(token) = lexer.next_while(|c| c.is_alphanumeric() || c == '_') {
-        if !(token.chars().nth(0).unwrap().is_alphabetic() || token.chars().nth(0).unwrap() == '_')
-        {
+        if !(token.chars().next().unwrap().is_alphabetic() || token.starts_with('_')) {
             return Err(anyhow!(
                 "Failed to parse identifier: must start with an alphanumeric character"
             ));
@@ -19,7 +18,7 @@ pub fn parse_identifier(lexer: &mut Lexer) -> Result<String> {
 
 pub fn parse_parameter(lexer: &mut Lexer) -> Result<(String, ast::Type)> {
     let name = parse_identifier(lexer)?;
-    if !lexer.next_token().is_some_and(|s| s == ":") {
+    if lexer.next_token().is_none_or(|s| s != ":") {
         return Err(anyhow!("Error parsing parameter: missing \":\""));
     }
     let p_type = parse_identifier(lexer)?;

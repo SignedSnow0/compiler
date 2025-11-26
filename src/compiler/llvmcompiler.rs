@@ -213,7 +213,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         };
 
         let variable = match function_context.variables.get(&node.name) {
-            Some(var) => var.into(),
+            Some(var) => var,
             None => {
                 if let Some(var) = self.global_variables.get(&node.name) {
                     var
@@ -233,7 +233,11 @@ impl AstVisitor for LlvmCompiler<'_> {
 
     fn visit_declaration(&mut self, node: &Declaration) -> Result<()> {
         match &node.value {
-            None => return Err(anyhow!("Variable declaration must include an initial value")),
+            None => {
+                return Err(anyhow!(
+                    "Variable declaration must include an initial value"
+                ));
+            }
             Some(value) => value.accept(self)?,
         };
 
@@ -245,8 +249,8 @@ impl AstVisitor for LlvmCompiler<'_> {
         let _ = self.builder.build_store(var, value)?;
 
         match &mut self.current_function {
-            Some(f) => f.variables.insert(node.name.clone(), var.into()),
-            None => self.global_variables.insert(node.name.clone(), var.into()),
+            Some(f) => f.variables.insert(node.name.clone(), var),
+            None => self.global_variables.insert(node.name.clone(), var),
         };
 
         Ok(())
@@ -287,12 +291,8 @@ impl AstVisitor for LlvmCompiler<'_> {
                 let _ = self.builder.build_store(*v, p);
             });
 
-        let variables: HashMap<String, _> = node
-            .parameters
-            .iter()
-            .map(|(name, _)| name.clone())
-            .zip(variables)
-            .collect();
+        let variables: HashMap<String, _> =
+            node.parameters.keys().cloned().zip(variables).collect();
 
         self.current_function = Some(FunctionContext {
             function,

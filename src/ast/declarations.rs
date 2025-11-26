@@ -33,7 +33,7 @@ impl Declaration {
 
 impl AstNode for Declaration {
     fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
-        visitor.visit_declaration(&self)
+        visitor.visit_declaration(self)
     }
 }
 

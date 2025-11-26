@@ -108,11 +108,11 @@ impl AstVisitor for AstWriter {
                 "None"
             }
         };
-        
+
         print!("Declaration({}, {}, ", node.name, type_name);
         match &node.value {
             None => print!("None"),
-            Some(_) => (),
+            Some(_) => node.value.as_ref().unwrap().accept(self)?,
         }
         print!(")");
         Ok(())

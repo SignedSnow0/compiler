@@ -12,7 +12,7 @@ impl Identifier {
 
 impl AstNode for Identifier {
     fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
-        visitor.visit_identifier(&self)
+        visitor.visit_identifier(self)
     }
 }
 

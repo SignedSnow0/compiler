@@ -240,11 +240,7 @@ impl Context {
     }
 
     fn free_vars(&self) -> Vec<VariableName> {
-        self.0
-            .iter()
-            .map(|(_, v)| v.free_vars())
-            .flatten()
-            .collect()
+        self.0.values().flat_map(|v| v.free_vars()).collect()
     }
 
     fn diff<T>(a: Vec<T>, b: Vec<T>) -> Vec<T>
@@ -264,13 +260,13 @@ enum Expression {
 }
 
 pub fn m(
-    typEnv: &Context,
+    type_env: &Context,
     expr: &Expression,
     m_type: &MonomorphicType,
     generator: &mut TypeVariableGenerator,
 ) -> Result<Substitution> {
     match expr {
-        Expression::Variable(var_name) => match typEnv.0.get(var_name) {
+        Expression::Variable(var_name) => match type_env.0.get(var_name) {
             Some(poly_type) => {
                 let instantiated_type = generator.instantiate(poly_type);
                 instantiated_type.unify(m_type)
@@ -287,7 +283,7 @@ pub fn m(
             ))?;
 
             let s2 = m(
-                &s1.apply_context(typEnv).extend(
+                &s1.apply_context(type_env).extend(
                     vec![(
                         abs_name.clone(),
                         s1.apply_poly(&PolymorphicType::MonomorphicType(beta1)),
@@ -306,7 +302,7 @@ pub fn m(
             let beta = MonomorphicType::Variable(generator.generate());
 
             let s1 = m(
-                typEnv,
+                type_env,
                 expression,
                 &MonomorphicType::FunctionApplication(
                     "->".to_string(),
@@ -316,7 +312,7 @@ pub fn m(
             )?;
 
             let s2 = m(
-                &s1.apply_context(typEnv),
+                &s1.apply_context(type_env),
                 expression1,
                 &s1.apply_mono(&beta),
                 generator,
@@ -327,12 +323,12 @@ pub fn m(
         Expression::Let(expr_name, expression, expression1) => {
             let beta = MonomorphicType::Variable(generator.generate());
 
-            let s1 = m(typEnv, expression, &beta, generator)?;
+            let s1 = m(type_env, expression, &beta, generator)?;
 
-            let generalized_type = s1.apply_context(typEnv).generalise(&s1.apply_mono(&beta));
+            let generalized_type = s1.apply_context(type_env).generalise(&s1.apply_mono(&beta));
 
             let s2 = m(
-                &s1.apply_context(typEnv).extend(
+                &s1.apply_context(type_env).extend(
                     vec![(expr_name.clone(), generalized_type)]
                         .into_iter()
                         .collect(),

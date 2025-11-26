@@ -196,13 +196,11 @@ impl Parser for Factor {
                     "Failed to parse expression: expected integer literal"
                 ))
             }
+        } else if lexer.peek_and(|s| s.contains("(")) {
+            FunctionCall::parse(lexer)
         } else {
-            if lexer.peek_and(|s| s.contains("(")) {
-                return FunctionCall::parse(lexer);
-            } else {
-                let identifier = parse_identifier(lexer)?;
-                Ok(ast::Identifier::new(identifier))
-            }
+            let identifier = parse_identifier(lexer)?;
+            Ok(ast::Identifier::new(identifier))
         }
     }
 }

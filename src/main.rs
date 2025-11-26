@@ -33,7 +33,7 @@ impl Lexer {
             return None;
         }
 
-        if self.line_buffer.get(0).is_some_and(|i| !i.is_empty()) {
+        if self.line_buffer.front().is_some_and(|i| !i.is_empty()) {
             let item = self.line_buffer.get_mut(0).unwrap();
             let c = item.remove(0);
             if item.is_empty() {
@@ -62,7 +62,7 @@ impl Lexer {
         match self.line_buffer.get_mut(0) {
             Some(item) => {
                 let mut token = String::default();
-                while item.chars().next().is_some_and(|c| predicate(c)) {
+                while item.chars().next().is_some_and(&predicate) {
                     token.push(item.remove(0));
                 }
 
@@ -115,11 +115,7 @@ impl Lexer {
             if bytes_read == 0 {
                 return false;
             }
-            self.line_buffer = buffer
-                .trim()
-                .split_whitespace()
-                .map(|s| s.to_owned())
-                .collect();
+            self.line_buffer = buffer.split_whitespace().map(|s| s.to_owned()).collect();
         }
         true
     }

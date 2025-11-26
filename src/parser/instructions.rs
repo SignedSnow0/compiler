@@ -23,12 +23,10 @@ impl Parser for Block {
                 }
                 lexer.pop_char();
 
-                return Ok(block);
+                Ok(block)
             }
             Some(item) if item == "let" => Declaration::parse(lexer),
-            _ => {
-                return Err(anyhow!("Unexpected token: \"{}\"", lexer.peek().unwrap()));
-            }
+            _ => Err(anyhow!("Unexpected token: \"{}\"", lexer.peek().unwrap())),
         }
     }
 }
@@ -59,14 +57,14 @@ impl Parser for Instruction {
 
 impl Parser for Return {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if !lexer.next_token().is_some_and(|s| s == "return") {
+        if lexer.next_token().is_none_or(|s| s != "return") {
             return Err(anyhow!(
                 "Error parsing return statement: missing \"return\""
             ));
         }
 
         let expression = Or::parse(lexer)?;
-        if !lexer.next_token().is_some_and(|s| s == ";") {
+        if lexer.next_token().is_none_or(|s| s != ";") {
             return Err(anyhow!("Error parsing return statement: missing \";\""));
         }
 
@@ -76,7 +74,7 @@ impl Parser for Return {
 
 impl Parser for If {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if !lexer.next_token().is_some_and(|s| s == "if") {
+        if lexer.next_token().is_none_or(|s| s != "if") {
             return Err(anyhow!("Error parsing if statement: missing \"if\""));
         }
 
@@ -96,7 +94,7 @@ impl Parser for If {
 
 impl Parser for While {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if !lexer.next_token().is_some_and(|s| s == "while") {
+        if lexer.next_token().is_none_or(|s| s != "while") {
             return Err(anyhow!("Error parsing while statement: missing \"while\""));
         }
 
