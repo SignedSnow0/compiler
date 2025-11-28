@@ -1,31 +1,30 @@
 use anyhow::{Result, anyhow};
 use std::collections::{HashMap, HashSet};
 
-type VariableName = String;
-type TypeVariable = String;
+pub type VariableName = String;
 
-struct TypeVariableGenerator {
+pub struct TypeVariableGenerator {
     counter: usize,
     mappings: HashMap<VariableName, MonomorphicType>,
 }
 
 #[derive(Clone, Debug)]
-enum MonomorphicType {
+pub enum MonomorphicType {
     Variable(VariableName),
     FunctionApplication(VariableName, Vec<MonomorphicType>),
 }
 
 #[derive(Clone, Debug)]
-enum PolymorphicType {
+pub enum PolymorphicType {
     MonomorphicType(MonomorphicType),
     TypeQuantifier(VariableName, Box<PolymorphicType>),
 }
 
 #[derive(Debug)]
-struct Context(HashMap<VariableName, PolymorphicType>);
+pub struct Context(HashMap<VariableName, PolymorphicType>);
 
 #[derive(Debug)]
-struct Substitution {
+pub struct Substitution {
     mappings: HashMap<VariableName, MonomorphicType>,
 }
 
@@ -99,10 +98,14 @@ impl TypeVariableGenerator {
         }
     }
 
-    pub fn generate(&mut self) -> TypeVariable {
+    pub fn generate(&mut self) -> VariableName {
         let var_name = format!("t{}", self.counter);
         self.counter += 1;
         var_name
+    }
+
+    pub fn generate_mono(&mut self) -> MonomorphicType {
+        MonomorphicType::Variable(self.generate())
     }
 
     pub fn instantiate(&mut self, poly: &PolymorphicType) -> MonomorphicType {
@@ -252,7 +255,7 @@ impl Context {
     }
 }
 
-enum Expression {
+pub enum Expression {
     Variable(String),
     Application(Box<Expression>, Box<Expression>),
     Abstraction(String, Box<Expression>),
@@ -268,6 +271,7 @@ pub fn m(
     match expr {
         Expression::Variable(var_name) => match type_env.0.get(var_name) {
             Some(poly_type) => {
+                dbg!("Variable: {} expected to have type: {}", var_name, m_type);
                 let instantiated_type = generator.instantiate(poly_type);
                 instantiated_type.unify(m_type)
             }
@@ -343,8 +347,77 @@ pub fn m(
     }
 }
 
+pub fn w(
+    type_env: &Context,
+    expr: &Expression,
+    generator: &mut TypeVariableGenerator,
+) -> Result<(Substitution, MonomorphicType)> {
+    match expr {
+        Expression::Variable(var_name) => match type_env.0.get(var_name) {
+            Some(poly_type) => Ok((
+                Substitution::new(HashMap::new()),
+                generator.instantiate(poly_type),
+            )),
+            None => Err(anyhow!("Undefined variable: {}", var_name)),
+        },
+        Expression::Abstraction(abs_name, expression) => {
+            let beta = MonomorphicType::Variable(generator.generate());
+            let (s1, t1) = w(
+                &type_env.extend(
+                    vec![(
+                        abs_name.clone(),
+                        PolymorphicType::MonomorphicType(beta.clone()),
+                    )]
+                    .into_iter()
+                    .collect(),
+                ),
+                expression,
+                generator,
+            )?;
+
+            Ok((
+                s1,
+                MonomorphicType::FunctionApplication("->".to_string(), vec![beta, t1]),
+            ))
+        }
+        Expression::Application(expression, expression1) => {
+            let beta = MonomorphicType::Variable(generator.generate());
+            let (s1, t1) = w(type_env, expression, generator)?;
+            let (s2, t2) = w(&s1.apply_context(type_env), expression1, generator)?;
+
+            let s3 = s2
+                .apply_mono(&t1)
+                .unify(&MonomorphicType::FunctionApplication(
+                    "->".to_string(),
+                    vec![t2, beta.clone()],
+                ))?;
+
+            Ok((s3.combine(&s2).combine(&s1), s3.apply_mono(&beta)))
+        }
+        Expression::Let(expr_name, expression, expression1) => {
+            let (s1, t1) = w(type_env, expression, generator)?;
+
+            let generalized_type = s1.apply_context(type_env).generalise(&s1.apply_mono(&t1));
+
+            let (s2, t2) = w(
+                &s1.apply_context(type_env).extend(
+                    vec![(expr_name.clone(), generalized_type)]
+                        .into_iter()
+                        .collect(),
+                ),
+                expression1,
+                generator,
+            )?;
+
+            Ok((s2.combine(&s1), t2))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::ast::{self, Addition, BinaryAstNode, Integer, LiteralAstNode};
+
     use super::*;
 
     #[test]

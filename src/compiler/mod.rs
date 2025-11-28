@@ -7,6 +7,7 @@ use anyhow::Result;
 
 pub mod llvmcompiler;
 mod type_checker;
+mod type_converter;
 
 pub trait AstVisitor {
     fn visit(&mut self, node: &Program) -> Result<()>;
