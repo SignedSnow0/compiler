@@ -62,7 +62,7 @@ mod tests {
         let reader = std::io::BufReader::new(std::io::Cursor::new(test_string));
         let mut lexer = Lexer::new(Box::new(reader));
 
-        let (name, p_type) = parse_parameter(&mut lexer).unwrap();
+        let (name, _p_type) = parse_parameter(&mut lexer).unwrap();
         assert_eq!(name, "variable_name123");
 
         let test_string = "123invalid: i32 ";

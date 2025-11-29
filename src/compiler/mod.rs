@@ -7,7 +7,7 @@ use anyhow::Result;
 
 pub mod llvmcompiler;
 mod type_checker;
-mod type_converter;
+pub mod type_converter;
 
 pub trait AstVisitor {
     fn visit(&mut self, node: &Program) -> Result<()>;
@@ -103,6 +103,7 @@ impl AstVisitor for AstWriter {
             if let Some(t) = &node.d_type {
                 match t {
                     Type::Integer32 => "i32",
+                    Type::Boolean8 => "b8",
                     Type::Custom(name) => name.as_str(),
                 }
             } else {
@@ -136,6 +137,7 @@ impl AstVisitor for AstWriter {
         for (i, (name, param)) in node.parameters.iter().enumerate() {
             let type_name = match param {
                 Type::Integer32 => "i32",
+                Type::Boolean8 => "b8",
                 Type::Custom(custom_name) => custom_name.as_str(),
             };
             print!("({}, {})", name, type_name);
@@ -146,6 +148,7 @@ impl AstVisitor for AstWriter {
         if let Some(return_type) = &node.return_type {
             let return_type = match &return_type {
                 Type::Integer32 => "i32",
+                Type::Boolean8 => "b8",
                 Type::Custom(custom_name) => custom_name.as_str(),
             };
             print!("-> {}], ", return_type);
@@ -283,6 +286,7 @@ impl AstVisitor for AstWriter {
         for (i, (name, f_type)) in node.fields.iter().enumerate() {
             let f_type = match f_type {
                 Type::Integer32 => "i32",
+                Type::Boolean8 => "b8",
                 Type::Custom(custom_name) => custom_name.as_str(),
             };
             print!("({}, {})", name, f_type);

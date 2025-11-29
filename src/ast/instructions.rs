@@ -84,6 +84,6 @@ impl Assignment {
 
 impl AstNode for Assignment {
     fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
-        visitor.visit_assignment(&self)
+        visitor.visit_assignment(self)
     }
 }

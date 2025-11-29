@@ -253,6 +253,10 @@ impl Context {
         let b: HashSet<T> = b.into_iter().collect();
         a.into_iter().filter(|item| !b.contains(item)).collect()
     }
+
+    pub fn contains_mapping(&self, var_name: &str) -> bool {
+        self.0.contains_key(var_name)
+    }
 }
 
 pub enum Expression {
@@ -271,7 +275,6 @@ pub fn m(
     match expr {
         Expression::Variable(var_name) => match type_env.0.get(var_name) {
             Some(poly_type) => {
-                dbg!("Variable: {} expected to have type: {}", var_name, m_type);
                 let instantiated_type = generator.instantiate(poly_type);
                 instantiated_type.unify(m_type)
             }
@@ -416,8 +419,6 @@ pub fn w(
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::{self, Addition, BinaryAstNode, Integer, LiteralAstNode};
-
     use super::*;
 
     #[test]

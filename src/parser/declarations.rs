@@ -78,6 +78,7 @@ impl Parser for Function {
             match lexer.next_token() {
                 Some(type_name) => match type_name.as_str() {
                     "i32" => Some(ast::Type::Integer32),
+                    "b8" => Some(ast::Type::Boolean8),
                     _ => Some(ast::Type::Custom(type_name)),
                 },
                 None => {
@@ -105,6 +106,7 @@ impl Parser for Declaration {
             let type_name = parse_identifier(lexer)?;
             match type_name.as_str() {
                 "i32" => Some(ast::Type::Integer32),
+                "b8" => Some(ast::Type::Boolean8),
                 _ => Some(ast::Type::Custom(type_name)),
             }
         } else {

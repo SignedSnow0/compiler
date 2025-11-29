@@ -1,13 +1,9 @@
-use std::{
-    collections::VecDeque,
-    env,
-    io::{BufRead, BufReader},
-};
+use std::{collections::VecDeque, env, io::BufRead};
 
 use inkwell::context::Context;
 use parser::{Parser, Program};
 
-use crate::compiler::llvmcompiler::LlvmCompiler;
+use crate::compiler::{llvmcompiler::LlvmCompiler, type_converter::TypeConverter};
 
 mod ast;
 mod compiler;
@@ -23,7 +19,7 @@ impl Lexer {
     pub fn new(reader: Box<dyn BufRead>) -> Self {
         Self {
             line_buffer: VecDeque::default(),
-            reader: reader,
+            reader,
             current_line: 0,
         }
     }
@@ -147,6 +143,10 @@ fn main() {
             //let _ = ast.accept(&mut writer);
 
             let context = Context::create();
+
+            let mut type_checker = TypeConverter::new();
+            ast.accept(&mut type_checker).unwrap();
+
             let mut compiler = LlvmCompiler::new(&context, &env::args().nth(1).unwrap());
             match ast.accept(&mut compiler) {
                 Ok(_) => {
