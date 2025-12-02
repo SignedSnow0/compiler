@@ -1,6 +1,6 @@
 use crate::{
-    Lexer,
     ast::{self, AstNode},
+    lexer::{Lexer, Token},
 };
 use anyhow::{Result, anyhow};
 
@@ -97,15 +97,12 @@ struct MemberAccess;
 impl Parser for Program {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut program = ast::Program::new();
-        while lexer.peek().is_some() {
-            if lexer.peek_and(|s| s == "let") {
-                program.add_node(Declaration::parse(lexer)?);
-            } else if lexer.peek_and(|s| s.starts_with("fn")) {
-                program.add_node(Function::parse(lexer)?);
-            } else if lexer.peek_and(|s| s == "struct") {
-                program.add_node(StructTypedef::parse(lexer)?);
-            } else {
-                return Err(anyhow!("Unexpected token: \"{}\"", lexer.peek().unwrap()));
+        while lexer.peek() != Token::EOF {
+            match lexer.peek() {
+                Token::Let => program.add_node(Declaration::parse(lexer)?),
+                Token::Fn => program.add_node(Function::parse(lexer)?),
+                Token::Struct => program.add_node(StructTypedef::parse(lexer)?),
+                _ => return Err(anyhow!("Unexpected token: \"{:?}\"", lexer.peek())),
             }
         }
 

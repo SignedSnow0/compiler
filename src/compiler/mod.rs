@@ -48,6 +48,7 @@ impl AstVisitor for AstWriter {
                 print!(", ");
             }
         }
+
         print!(")");
         Ok(())
     }

@@ -1,70 +1,59 @@
 use crate::{
-    Lexer,
     ast::{self, AstNode},
+    lexer::{Lexer, Token},
     parser::{
         Assignment, Block, Declaration, FunctionCall, If, Instruction, Or, Parser, Return, While,
-        utils::parse_identifier,
     },
 };
 use anyhow::{Result, anyhow};
 
 impl Parser for Block {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        match lexer.peek() {
-            Some(item) if item == "{" => {
-                lexer.pop_char();
-                let mut block = ast::Block::new();
-                while !lexer.peek_and(|s| s.starts_with("}")) {
-                    block.add_node(Instruction::parse(lexer)?);
-                }
-
-                if !lexer.peek_and(|s| s.starts_with("}")) {
-                    return Err(anyhow!("Failed to parse block: missing '}}'"));
-                }
-                lexer.pop_char();
-
-                Ok(block)
-            }
-            Some(item) if item == "let" => Declaration::parse(lexer),
-            _ => Err(anyhow!("Unexpected token: \"{}\"", lexer.peek().unwrap())),
+        if lexer.consume_if(|token| token == Token::CurlyL).is_none() {
+            return Err(anyhow!("Failed to parse block: missing \"{{\""));
         }
+
+        let mut block = ast::Block::new();
+        while lexer.peek_and(|token| token == Token::CurlyR) {
+            block.add_node(Instruction::parse(lexer)?);
+        }
+
+        if lexer.consume_if(|token| token == Token::CurlyR).is_none() {
+            return Err(anyhow!("Failed to parse block: missing \"}}\""));
+        }
+
+        Ok(block)
     }
 }
 
 impl Parser for Instruction {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         match lexer.peek() {
-            Some(item) if item == "let" => Declaration::parse(lexer),
-            Some(item) if item == "if" => If::parse(lexer),
-            Some(item) if item == "while" => While::parse(lexer),
-            Some(item) if item == "return" => Return::parse(lexer),
-            Some(_) => {
-                if lexer.peek_and_n(2, |p| p.contains("=")) {
-                    Assignment::parse(lexer)
-                } else {
-                    let call = FunctionCall::parse(lexer)?;
-                    if lexer.next_token().is_some_and(|s| s == ";") {
-                        Ok(call)
-                    } else {
-                        Err(anyhow!("Error parsing function call: missing \";\""))
-                    }
-                }
-            }
-            None => Err(anyhow!("Error parsing instruction: unexpected EOF")),
+            Token::Let => Declaration::parse(lexer),
+            Token::If => If::parse(lexer),
+            Token::While => While::parse(lexer),
+            Token::Return => Return::parse(lexer),
+            _ => Err(anyhow!(
+                "Failed to parse instruction: unexpected token \"{:?}\"",
+                lexer.peek()
+            )),
         }
     }
 }
 
 impl Parser for Return {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if lexer.next_token().is_none_or(|s| s != "return") {
+        if lexer.consume_if(|token| token == Token::Return).is_none() {
             return Err(anyhow!(
                 "Error parsing return statement: missing \"return\""
             ));
         }
 
         let expression = Or::parse(lexer)?;
-        if lexer.next_token().is_none_or(|s| s != ";") {
+        if lexer
+            .consume_if(|token| token == Token::Semicolon)
+            .is_none()
+        {
             return Err(anyhow!("Error parsing return statement: missing \";\""));
         }
 
@@ -74,15 +63,15 @@ impl Parser for Return {
 
 impl Parser for If {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if lexer.next_token().is_none_or(|s| s != "if") {
+        if lexer.consume_if(|token| token == Token::If).is_none() {
             return Err(anyhow!("Error parsing if statement: missing \"if\""));
         }
 
         let expression = Or::parse(lexer)?;
         let then_block = Block::parse(lexer)?;
 
-        let else_block = if lexer.peek_and(|s| s == "else") {
-            let _ = lexer.next_token();
+        let else_block = if lexer.peek_and(|token| token == Token::Else) {
+            let _ = lexer.next();
             Some(Block::parse(lexer)?)
         } else {
             None
@@ -94,7 +83,7 @@ impl Parser for If {
 
 impl Parser for While {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if lexer.next_token().is_none_or(|s| s != "while") {
+        if lexer.consume_if(|token| token == Token::While).is_none() {
             return Err(anyhow!("Error parsing while statement: missing \"while\""));
         }
 
@@ -106,22 +95,31 @@ impl Parser for While {
 
 impl Parser for FunctionCall {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        let name = parse_identifier(lexer)?;
-        if !lexer.peek_and(|s| s.starts_with("(")) {
+        let name = if let Some(token) = lexer.consume_if(|token| token.is_identifier())
+            && let Token::Identifier(name) = token
+        {
+            name
+        } else {
+            return Err(anyhow!(
+                "Error parsing function call: missing target identitifer"
+            ));
+        };
+
+        if lexer.consume_if(|token| token == Token::ParenL).is_none() {
             return Err(anyhow!("Error parsing function call: missing \'(\'"));
         }
-        lexer.pop_char();
 
         let mut arguments = Vec::new();
-        while !lexer.peek_and(|s| s.starts_with(")")) {
+        while !lexer.peek_and(|token| token == Token::ParenR) {
             let argument = Or::parse(lexer)?;
             arguments.push(argument);
 
-            if lexer.peek_and(|s| s == ",") {
-                lexer.next_token();
-            }
+            let _ = lexer.consume_if(|token| token == Token::Comma);
         }
-        lexer.pop_char();
+
+        if lexer.consume_if(|token| token == Token::ParenR).is_none() {
+            return Err(anyhow!("Error parsing function call: missing \')\'"));
+        }
 
         Ok(ast::FunctionCall::new(name, arguments))
     }
@@ -129,18 +127,32 @@ impl Parser for FunctionCall {
 
 impl Parser for Assignment {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        let target = parse_identifier(lexer)?;
-        if !lexer.peek_and(|s| s.starts_with("=")) {
+        let name = if let Some(token) = lexer.consume_if(|token| token.is_identifier())
+            && let Token::Identifier(name) = token
+        {
+            name
+        } else {
+            return Err(anyhow!(
+                "Error parsing assignment: missing target identitifer"
+            ));
+        };
+
+        if lexer
+            .consume_if(|token| token == Token::Assignment)
+            .is_none()
+        {
             return Err(anyhow!("Error parsing assignment: missing \"=\""));
         }
-        lexer.pop_char();
 
         let value = Or::parse(lexer)?;
-        if !lexer.peek_and(|s| s.starts_with(";")) {
+
+        if lexer
+            .consume_if(|token| token == Token::Semicolon)
+            .is_none()
+        {
             return Err(anyhow!("Error parsing assignment: missing \";\""));
         }
-        lexer.pop_char();
 
-        Ok(ast::Assignment::new(target, value))
+        Ok(ast::Assignment::new(name, value))
     }
 }
