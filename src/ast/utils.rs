@@ -5,19 +5,19 @@ use crate::{
 use anyhow::Result;
 
 impl Identifier {
-    pub fn new(name: String) -> Box<dyn AstNode> {
+    pub fn new(name: String) -> Box<Identifier> {
         Box::new(Self { name })
     }
 }
 
 impl AstNode for Identifier {
-    fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
+    fn accept(&mut self, visitor: &mut dyn AstVisitor) -> Result<()> {
         visitor.visit_identifier(self)
     }
 }
 
 impl LiteralAstNode<i32> for Integer {
-    fn new(value: i32) -> Box<dyn AstNode>
+    fn new(value: i32) -> Box<Integer>
     where
         Self: Sized,
     {
@@ -26,7 +26,7 @@ impl LiteralAstNode<i32> for Integer {
 }
 
 impl AstNode for Integer {
-    fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
+    fn accept(&mut self, visitor: &mut dyn AstVisitor) -> Result<()> {
         visitor.visit_integer(self)
     }
 }

@@ -51,15 +51,15 @@ impl LlvmCompiler<'_> {
 }
 
 impl AstVisitor for LlvmCompiler<'_> {
-    fn visit(&mut self, node: &Program) -> Result<()> {
-        for node in &node.nodes {
+    fn visit(&mut self, node: &mut Program) -> Result<()> {
+        for node in &mut node.nodes {
             node.accept(self)?;
         }
 
         Ok(())
     }
 
-    fn visit_addition(&mut self, node: &Addition) -> Result<()> {
+    fn visit_addition(&mut self, node: &mut Addition) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -93,7 +93,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_subtraction(&mut self, node: &Subtraction) -> Result<()> {
+    fn visit_subtraction(&mut self, node: &mut Subtraction) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -127,7 +127,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_multiplication(&mut self, node: &Multiplication) -> Result<()> {
+    fn visit_multiplication(&mut self, node: &mut Multiplication) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -161,7 +161,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_division(&mut self, node: &Division) -> Result<()> {
+    fn visit_division(&mut self, node: &mut Division) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -195,14 +195,14 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_integer(&mut self, node: &Integer) -> Result<()> {
+    fn visit_integer(&mut self, node: &mut Integer) -> Result<()> {
         let value = self.context.i32_type().const_int(node.value as u64, false);
         self.intermediate_values.push(value.into());
 
         Ok(())
     }
 
-    fn visit_identifier(&mut self, node: &Identifier) -> Result<()> {
+    fn visit_identifier(&mut self, node: &mut Identifier) -> Result<()> {
         let function_context = match &self.current_function {
             Some(f) => f,
             None => {
@@ -231,8 +231,8 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_declaration(&mut self, node: &Declaration) -> Result<()> {
-        match &node.value {
+    fn visit_declaration(&mut self, node: &mut Declaration) -> Result<()> {
+        match &mut node.value {
             None => {
                 return Err(anyhow!(
                     "Variable declaration must include an initial value"
@@ -256,15 +256,15 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_block(&mut self, node: &Block) -> Result<()> {
-        for statement in &node.nodes {
+    fn visit_block(&mut self, node: &mut Block) -> Result<()> {
+        for statement in &mut node.nodes {
             statement.accept(self)?;
         }
 
         Ok(())
     }
 
-    fn visit_function(&mut self, node: &Function) -> Result<()> {
+    fn visit_function(&mut self, node: &mut Function) -> Result<()> {
         let ret_type = self.context.i32_type();
         let param_types: Vec<BasicMetadataTypeEnum<'_>> = node
             .parameters
@@ -306,7 +306,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_if(&mut self, node: &If) -> Result<()> {
+    fn visit_if(&mut self, node: &mut If) -> Result<()> {
         let function = match &self.current_function {
             Some(f) => f.function,
             None => return Err(anyhow!("Cannot call if block outside of a function")),
@@ -327,7 +327,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         node.then_block.accept(self)?;
 
         self.builder.position_at_end(else_bb);
-        if let Some(else_block) = &node.else_block {
+        if let Some(else_block) = &mut node.else_block {
             else_block.accept(self)?;
         }
 
@@ -336,7 +336,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_while(&mut self, node: &While) -> Result<()> {
+    fn visit_while(&mut self, node: &mut While) -> Result<()> {
         let function = match &self.current_function {
             Some(f) => f.function,
             None => return Err(anyhow!("Cannot call while block outside of a function")),
@@ -371,7 +371,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_return(&mut self, node: &Return) -> Result<()> {
+    fn visit_return(&mut self, node: &mut Return) -> Result<()> {
         if self.current_function.is_none() {
             return Err(anyhow!("Cannot use return outside of a function"));
         }
@@ -394,9 +394,9 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_function_call(&mut self, node: &FunctionCall) -> Result<()> {
+    fn visit_function_call(&mut self, node: &mut FunctionCall) -> Result<()> {
         let mut arguments = Vec::new();
-        for arg in &node.arguments {
+        for arg in &mut node.arguments {
             arg.accept(self)?;
             arguments.push(self.intermediate_values.pop().unwrap().into());
         }
@@ -421,7 +421,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_or(&mut self, node: &Or) -> Result<()> {
+    fn visit_or(&mut self, node: &mut Or) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             self.intermediate_values.pop().unwrap().into_int_value()
@@ -437,7 +437,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_and(&mut self, node: &And) -> Result<()> {
+    fn visit_and(&mut self, node: &mut And) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             self.intermediate_values.pop().unwrap().into_int_value()
@@ -453,7 +453,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_equality(&mut self, node: &Equality) -> Result<()> {
+    fn visit_equality(&mut self, node: &mut Equality) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -489,7 +489,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_inequality(&mut self, node: &Inequality) -> Result<()> {
+    fn visit_inequality(&mut self, node: &mut Inequality) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -525,7 +525,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_greater(&mut self, node: &Greater) -> Result<()> {
+    fn visit_greater(&mut self, node: &mut Greater) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -561,7 +561,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_lesser(&mut self, node: &Lesser) -> Result<()> {
+    fn visit_lesser(&mut self, node: &mut Lesser) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -597,7 +597,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_greater_equal(&mut self, node: &GreaterEqual) -> Result<()> {
+    fn visit_greater_equal(&mut self, node: &mut GreaterEqual) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -633,7 +633,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_lesser_equal(&mut self, node: &LesserEqual) -> Result<()> {
+    fn visit_lesser_equal(&mut self, node: &mut LesserEqual) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             match self.intermediate_values.last().unwrap().get_type() {
@@ -669,7 +669,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
-    fn visit_assignment(&mut self, node: &Assignment) -> Result<()> {
+    fn visit_assignment(&mut self, node: &mut Assignment) -> Result<()> {
         let value = {
             node.value.accept(self)?;
             self.intermediate_values.pop().unwrap()
@@ -693,7 +693,7 @@ impl AstVisitor for LlvmCompiler<'_> {
         }
     }
 
-    fn visit_typedef(&mut self, node: &StructTypedef) -> Result<()> {
+    fn visit_typedef(&mut self, node: &mut StructTypedef) -> Result<()> {
         let _struct_type = self.context.opaque_struct_type(&node.name);
 
         Ok(())

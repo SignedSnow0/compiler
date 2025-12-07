@@ -19,7 +19,7 @@ fn main() {
 
     let mut lexer = Lexer::new(std::fs::read_to_string(env::args().nth(1).unwrap()).unwrap());
     match Program::parse(&mut lexer) {
-        Ok(ast) => {
+        Ok(mut ast) => {
             //let mut writer = AstWriter;
             //let _ = ast.accept(&mut writer);
 

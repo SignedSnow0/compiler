@@ -8,17 +8,17 @@ pub mod operators;
 pub mod utils;
 
 pub trait AstNode {
-    fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()>;
+    fn accept(&mut self, visitor: &mut dyn AstVisitor) -> Result<()>;
 }
 
 pub trait LiteralAstNode<T> {
-    fn new(value: T) -> Box<dyn AstNode>
+    fn new(value: T) -> Box<Self>
     where
         Self: Sized;
 }
 
 pub trait BinaryAstNode: AstNode {
-    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<dyn AstNode>
+    fn new(left: Box<dyn AstNode>, right: Box<dyn AstNode>) -> Box<Self>
     where
         Self: Sized;
 }
@@ -160,7 +160,7 @@ impl Program {
 }
 
 impl AstNode for Program {
-    fn accept(&self, visitor: &mut dyn AstVisitor) -> Result<()> {
+    fn accept(&mut self, visitor: &mut dyn AstVisitor) -> Result<()> {
         visitor.visit(self)
     }
 }

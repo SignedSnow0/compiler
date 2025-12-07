@@ -97,15 +97,15 @@ impl TypeConverter {
 }
 
 impl AstVisitor for TypeConverter {
-    fn visit(&mut self, node: &ast::Program) -> Result<()> {
-        for node in &node.nodes {
+    fn visit(&mut self, node: &mut ast::Program) -> Result<()> {
+        for node in &mut node.nodes {
             node.accept(self)?;
         }
 
         Ok(())
     }
 
-    fn visit_addition(&mut self, node: &ast::Addition) -> Result<()> {
+    fn visit_addition(&mut self, node: &mut ast::Addition) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -130,7 +130,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_subtraction(&mut self, node: &ast::Subtraction) -> Result<()> {
+    fn visit_subtraction(&mut self, node: &mut ast::Subtraction) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -155,7 +155,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_multiplication(&mut self, node: &ast::Multiplication) -> Result<()> {
+    fn visit_multiplication(&mut self, node: &mut ast::Multiplication) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -178,7 +178,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_division(&mut self, node: &ast::Division) -> Result<()> {
+    fn visit_division(&mut self, node: &mut ast::Division) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -203,18 +203,18 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_integer(&mut self, _node: &ast::Integer) -> Result<()> {
+    fn visit_integer(&mut self, _node: &mut ast::Integer) -> Result<()> {
         self.expression.push(*self.primitive_mapping("i32_lit")?);
 
         Ok(())
     }
 
-    fn visit_identifier(&mut self, _node: &ast::Identifier) -> Result<()> {
+    fn visit_identifier(&mut self, _node: &mut ast::Identifier) -> Result<()> {
         Ok(())
     }
 
-    fn visit_declaration(&mut self, node: &ast::Declaration) -> Result<()> {
-        match (&node.value, &node.d_type) {
+    fn visit_declaration(&mut self, node: &mut ast::Declaration) -> Result<()> {
+        match (&mut node.value, &mut node.d_type) {
             (Some(expr), Some(declared_type)) => {
                 let expr = {
                     expr.accept(self)?;
@@ -268,44 +268,44 @@ impl AstVisitor for TypeConverter {
         }
     }
 
-    fn visit_block(&mut self, node: &ast::Block) -> Result<()> {
-        for statement in &node.nodes {
+    fn visit_block(&mut self, node: &mut ast::Block) -> Result<()> {
+        for statement in &mut node.nodes {
             statement.accept(self)?;
         }
 
         Ok(())
     }
 
-    fn visit_function(&mut self, node: &ast::Function) -> Result<()> {
+    fn visit_function(&mut self, node: &mut ast::Function) -> Result<()> {
         node.body.accept(self)?;
 
         Ok(())
     }
 
-    fn visit_if(&mut self, node: &ast::If) -> Result<()> {
+    fn visit_if(&mut self, node: &mut ast::If) -> Result<()> {
         node.then_block.accept(self)?;
-        if let Some(else_block) = &node.else_block {
+        if let Some(else_block) = &mut node.else_block {
             else_block.accept(self)?;
         }
 
         Ok(())
     }
 
-    fn visit_while(&mut self, node: &ast::While) -> Result<()> {
+    fn visit_while(&mut self, node: &mut ast::While) -> Result<()> {
         node.block.accept(self)?;
 
         Ok(())
     }
 
-    fn visit_return(&mut self, _node: &ast::Return) -> Result<()> {
+    fn visit_return(&mut self, _node: &mut ast::Return) -> Result<()> {
         Ok(())
     }
 
-    fn visit_function_call(&mut self, _node: &ast::FunctionCall) -> Result<()> {
+    fn visit_function_call(&mut self, _node: &mut ast::FunctionCall) -> Result<()> {
         Ok(())
     }
 
-    fn visit_or(&mut self, node: &ast::Or) -> Result<()> {
+    fn visit_or(&mut self, node: &mut ast::Or) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -330,7 +330,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_and(&mut self, node: &ast::And) -> Result<()> {
+    fn visit_and(&mut self, node: &mut ast::And) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -355,7 +355,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_equality(&mut self, node: &ast::Equality) -> Result<()> {
+    fn visit_equality(&mut self, node: &mut ast::Equality) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -380,7 +380,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_inequality(&mut self, node: &ast::Inequality) -> Result<()> {
+    fn visit_inequality(&mut self, node: &mut ast::Inequality) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -405,7 +405,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_greater(&mut self, node: &ast::Greater) -> Result<()> {
+    fn visit_greater(&mut self, node: &mut ast::Greater) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -430,7 +430,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_lesser(&mut self, node: &ast::Lesser) -> Result<()> {
+    fn visit_lesser(&mut self, node: &mut ast::Lesser) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -455,7 +455,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_greater_equal(&mut self, node: &ast::GreaterEqual) -> Result<()> {
+    fn visit_greater_equal(&mut self, node: &mut ast::GreaterEqual) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -478,7 +478,7 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_lesser_equal(&mut self, node: &ast::LesserEqual) -> Result<()> {
+    fn visit_lesser_equal(&mut self, node: &mut ast::LesserEqual) -> Result<()> {
         let left = {
             node.left.accept(self)?;
             Expression::Application(
@@ -501,11 +501,11 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_assignment(&mut self, _node: &ast::Assignment) -> Result<()> {
+    fn visit_assignment(&mut self, _node: &mut ast::Assignment) -> Result<()> {
         Ok(())
     }
 
-    fn visit_typedef(&mut self, _node: &ast::StructTypedef) -> Result<()> {
+    fn visit_typedef(&mut self, _node: &mut ast::StructTypedef) -> Result<()> {
         Ok(())
     }
 }
@@ -517,7 +517,7 @@ mod tests {
 
     #[test]
     fn test_algorithm_w() {
-        let ast = ast::Addition {
+        let mut ast = ast::Addition {
             left: Box::new(ast::Integer { value: 5 }),
             right: Box::new(ast::Integer { value: 10 }),
         };
@@ -564,7 +564,7 @@ mod tests {
 
     #[test]
     fn test_algorithm_m() {
-        let ast = ast::Addition {
+        let mut ast = ast::Addition {
             left: Box::new(ast::Integer { value: 5 }),
             right: Box::new(ast::Integer { value: 10 }),
         };
@@ -614,7 +614,7 @@ mod tests {
 
     #[test]
     fn test_int_to_bool() {
-        let ast = ast::Equality {
+        let mut ast = ast::Equality {
             left: Box::new(ast::Integer { value: 5 }),
             right: Box::new(ast::Integer { value: 10 }),
         };

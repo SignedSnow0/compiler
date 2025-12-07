@@ -199,45 +199,38 @@ mod tests {
     use crate::compiler::AstWriter;
 
     #[test]
-    fn test_factor() -> Result<()> {
-        let source = "x".to_string();
-        let mut lexer = Lexer::new(source);
+    fn test_math() -> Result<()> {
+        let source = "4 + 3 / (33 - xyz) * 5";
+        let mut lexer = Lexer::new(source.to_string());
 
-        let ast = Factor::parse(&mut lexer)?;
-        let mut writer = AstWriter::new();
-        ast.accept(&mut writer)?;
-        let result = writer.get_string();
+        let result = {
+            let mut ast = Expression::parse(&mut lexer)?;
+            let mut writer = AstWriter::new();
+            ast.accept(&mut writer)?;
 
-        let expected = ast::Identifier::new("x".to_string());
-        let mut writer = AstWriter::new();
-        expected.accept(&mut writer)?;
-        let expected = writer.get_string();
+            writer.get_string()
+        };
 
-        assert_eq!(result, expected);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_term() -> Result<()> {
-        let source = "x * 4 / (5 / 2)".to_string();
-        let mut lexer = Lexer::new(source);
-
-        let ast = Term::parse(&mut lexer)?;
-        let mut writer = AstWriter::new();
-        ast.accept(&mut writer)?;
-        let result = writer.get_string();
-
-        let expected = ast::Multiplication::new(
-            ast::Identifier::new("x".to_string()),
-            ast::Division::new(
+        let expected = {
+            let mut expected = ast::Addition::new(
                 ast::Integer::new(4),
-                ast::Division::new(ast::Integer::new(5), ast::Integer::new(2)),
-            ),
-        );
-        let mut writer = AstWriter::new();
-        expected.accept(&mut writer)?;
-        let expected = writer.get_string();
+                ast::Division::new(
+                    ast::Integer::new(3),
+                    ast::Multiplication::new(
+                        ast::Subtraction::new(
+                            ast::Integer::new(33),
+                            ast::Identifier::new("xyz".to_string()),
+                        ),
+                        ast::Integer::new(5),
+                    ),
+                ),
+            );
+
+            let mut writer = AstWriter::new();
+            expected.accept(&mut writer)?;
+
+            writer.get_string()
+        };
 
         assert_eq!(result, expected);
 
@@ -245,25 +238,35 @@ mod tests {
     }
 
     #[test]
-    fn test_expression() -> Result<()> {
-        let source = "x - 4 / 5 + 2".to_string();
-        let mut lexer = Lexer::new(source);
+    fn test_logic() -> Result<()> {
+        let source = "4 * 3 < (33 - 2 && 4 >= 1) || x != 0";
+        let mut lexer = Lexer::new(source.to_string());
 
-        let ast = Expression::parse(&mut lexer)?;
-        let mut writer = AstWriter::new();
-        ast.accept(&mut writer)?;
-        let result = writer.get_string();
+        let result = {
+            let mut ast = Or::parse(&mut lexer)?;
+            let mut writer = AstWriter::new();
+            ast.accept(&mut writer)?;
 
-        let expected = ast::Addition::new(
-            ast::Subtraction::new(
-                ast::Identifier::new("x".to_string()),
-                ast::Division::new(ast::Integer::new(4), ast::Integer::new(5)),
-            ),
-            ast::Integer::new(2),
-        );
-        let mut writer = AstWriter::new();
-        expected.accept(&mut writer)?;
-        let expected = writer.get_string();
+            writer.get_string()
+        };
+
+        let expected = {
+            let mut expected = ast::Or::new(
+                ast::Lesser::new(
+                    ast::Multiplication::new(ast::Integer::new(4), ast::Integer::new(3)),
+                    ast::And::new(
+                        ast::Subtraction::new(ast::Integer::new(33), ast::Integer::new(2)),
+                        ast::GreaterEqual::new(ast::Integer::new(4), ast::Integer::new(1)),
+                    ),
+                ),
+                ast::Inequality::new(ast::Identifier::new("x".to_string()), ast::Integer::new(0)),
+            );
+
+            let mut writer = AstWriter::new();
+            expected.accept(&mut writer)?;
+
+            writer.get_string()
+        };
 
         assert_eq!(result, expected);
 
