@@ -21,7 +21,7 @@ pub enum Token {
     Multiplication,
     Division,
     Mod,
-    Assignment,
+    Equal,
 
     Let,
     Fn,
@@ -32,7 +32,7 @@ pub enum Token {
     For,
     Return,
 
-    Equal,
+    LogicalEqual,
     NotEqual,
     LogicalNot,
     LogicalOr,
@@ -71,7 +71,6 @@ impl Lexer {
 
     pub fn next(&mut self) -> Token {
         let token = self.peek();
-
         match &token {
             Token::Identifier(value) | Token::Number(value) => {
                 let start_index = self.source.len() - value.len();
@@ -79,7 +78,7 @@ impl Lexer {
                 self.source.drain(start_index..);
                 self.current_pos += value.len();
             }
-            Token::Equal
+            Token::LogicalEqual
             | Token::NotEqual
             | Token::LesserEqual
             | Token::GreaterEqual
@@ -150,7 +149,8 @@ impl Lexer {
             ':' => Token::Colon,
             '+' => Token::Plus,
             '-' => Token::Minus,
-            '*' => Token::Division,
+            '*' => Token::Multiplication,
+            '/' => Token::Division,
             '%' => Token::Mod,
             ',' => Token::Comma,
             '=' => {
@@ -159,9 +159,9 @@ impl Lexer {
                     .get(self.source.len() - 2)
                     .is_some_and(|c| *c == '=')
                 {
-                    Token::Equal
+                    Token::LogicalEqual
                 } else {
-                    Token::Assignment
+                    Token::Equal
                 }
             }
             '!' => {
@@ -244,6 +244,10 @@ impl Lexer {
             .is_some_and(|c| c.is_alphanumeric() || *c == '_')
         {
             value.insert(value.len(), *self.source.get(index).unwrap());
+            if index == 0 {
+                return value;
+            }
+
             index -= 1;
         }
 
@@ -261,11 +265,14 @@ impl Lexer {
             .is_some_and(|c| c.is_numeric() || (*c == '.' && !dot_parsed))
         {
             let new_char = *self.source.get(index).unwrap();
+            value.insert(value.len(), new_char);
+            if index == 0 {
+                return value;
+            }
             if new_char == '.' {
                 dot_parsed = true;
             }
 
-            value.insert(value.len(), new_char);
             index -= 1;
         }
 
@@ -277,6 +284,10 @@ impl Lexer {
         let mut index = self.source.len() - 1;
         while self.source.get(index).is_some_and(|c| !c.is_whitespace()) {
             value.insert(value.len(), *self.source.get(index).unwrap());
+            if index == 0 {
+                return value;
+            }
+
             index -= 1;
         }
 
@@ -293,8 +304,6 @@ mod tests {
         let source = "let x: i32 = 10;\n".to_string();
         let mut lexer = Lexer::new(source);
 
-        println!("Remainder: {:?}", lexer.source);
-
         let expected = Token::Let;
         assert_eq!(lexer.next(), expected);
 
@@ -307,7 +316,7 @@ mod tests {
         let expected = Token::Identifier("i32".to_string());
         assert_eq!(lexer.next(), expected);
 
-        let expected = Token::Assignment;
+        let expected = Token::Equal;
         assert_eq!(lexer.next(), expected);
 
         let expected = Token::Number("10".to_string());

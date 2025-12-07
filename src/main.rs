@@ -1,7 +1,6 @@
-use std::{collections::VecDeque, env, io::BufRead};
-
 use inkwell::context::Context;
 use parser::{Parser, Program};
+use std::env;
 
 use crate::compiler::{llvmcompiler::LlvmCompiler, type_converter::TypeConverter};
 use crate::lexer::Lexer;

@@ -37,3 +37,26 @@ pub fn parse_parameter(lexer: &mut Lexer) -> Result<(Token, ast::Type)> {
 
     Ok((ident, ident_type))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_parameter() -> Result<()> {
+        let source = "_x123: i32".to_string();
+        let mut lexer = Lexer::new(source);
+
+        let (token, token_type) = parse_parameter(&mut lexer)?;
+
+        if let Token::Identifier(token) = token {
+            assert_eq!(token, "_x123");
+        } else {
+            return Err(anyhow!("Error: token is not identifier"));
+        }
+
+        assert_eq!(token_type, ast::Type::Integer32);
+
+        Ok(())
+    }
+}

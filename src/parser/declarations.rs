@@ -145,7 +145,7 @@ impl Parser for Declaration {
             None
         };
 
-        let expression = if lexer.peek_and(|token| token == Token::Assignment) {
+        let expression = if lexer.peek_and(|token| token == Token::Equal) {
             let _ = lexer.next();
             Some(Or::parse(lexer)?)
         } else {

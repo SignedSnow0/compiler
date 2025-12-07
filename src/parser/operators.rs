@@ -39,10 +39,10 @@ impl Parser for Equality {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut left = Relation::parse(lexer)?;
         while let Some(token) =
-            lexer.consume_if(|token| token == Token::Equal || token == Token::NotEqual)
+            lexer.consume_if(|token| token == Token::LogicalEqual || token == Token::NotEqual)
         {
             match token {
-                Token::Equal => {
+                Token::LogicalEqual => {
                     let right = Relation::parse(lexer)?;
                     left = ast::Equality::new(left, right);
                 }
@@ -190,5 +190,83 @@ impl Parser for Factor {
                 lexer.peek()
             ))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::AstWriter;
+
+    #[test]
+    fn test_factor() -> Result<()> {
+        let source = "x".to_string();
+        let mut lexer = Lexer::new(source);
+
+        let ast = Factor::parse(&mut lexer)?;
+        let mut writer = AstWriter::new();
+        ast.accept(&mut writer)?;
+        let result = writer.get_string();
+
+        let expected = ast::Identifier::new("x".to_string());
+        let mut writer = AstWriter::new();
+        expected.accept(&mut writer)?;
+        let expected = writer.get_string();
+
+        assert_eq!(result, expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_term() -> Result<()> {
+        let source = "x * 4 / (5 / 2)".to_string();
+        let mut lexer = Lexer::new(source);
+
+        let ast = Term::parse(&mut lexer)?;
+        let mut writer = AstWriter::new();
+        ast.accept(&mut writer)?;
+        let result = writer.get_string();
+
+        let expected = ast::Multiplication::new(
+            ast::Identifier::new("x".to_string()),
+            ast::Division::new(
+                ast::Integer::new(4),
+                ast::Division::new(ast::Integer::new(5), ast::Integer::new(2)),
+            ),
+        );
+        let mut writer = AstWriter::new();
+        expected.accept(&mut writer)?;
+        let expected = writer.get_string();
+
+        assert_eq!(result, expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_expression() -> Result<()> {
+        let source = "x - 4 / 5 + 2".to_string();
+        let mut lexer = Lexer::new(source);
+
+        let ast = Expression::parse(&mut lexer)?;
+        let mut writer = AstWriter::new();
+        ast.accept(&mut writer)?;
+        let result = writer.get_string();
+
+        let expected = ast::Addition::new(
+            ast::Subtraction::new(
+                ast::Identifier::new("x".to_string()),
+                ast::Division::new(ast::Integer::new(4), ast::Integer::new(5)),
+            ),
+            ast::Integer::new(2),
+        );
+        let mut writer = AstWriter::new();
+        expected.accept(&mut writer)?;
+        let expected = writer.get_string();
+
+        assert_eq!(result, expected);
+
+        Ok(())
     }
 }

@@ -137,10 +137,7 @@ impl Parser for Assignment {
             ));
         };
 
-        if lexer
-            .consume_if(|token| token == Token::Assignment)
-            .is_none()
-        {
+        if lexer.consume_if(|token| token == Token::Equal).is_none() {
             return Err(anyhow!("Error parsing assignment: missing \"=\""));
         }
 
