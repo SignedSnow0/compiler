@@ -13,7 +13,7 @@ pub fn parse_parameter(lexer: &mut Lexer) -> Result<(Token, ast::Type)> {
         ));
     };
 
-    if lexer.consume_if(|token| token == Token::Colon).is_none() {
+    if lexer.consume_if(|token| token == &Token::Colon).is_none() {
         return Err(anyhow!("Failed to parse function parameter: missing colon"));
     }
 

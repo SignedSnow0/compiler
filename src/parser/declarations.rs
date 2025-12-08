@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 impl Parser for StructTypedef {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if lexer.consume_if(|token| token == Token::Struct).is_none() {
+        if lexer.consume_if(|token| token == &Token::Struct).is_none() {
             return Err(anyhow!("Error parsing typedef: missing \"struct\""));
         }
 
@@ -20,29 +20,29 @@ impl Parser for StructTypedef {
             return Err(anyhow!("Error parsing typedef: missing identifier"));
         };
 
-        if lexer.consume_if(|token| token == Token::CurlyL).is_none() {
+        if lexer.consume_if(|token| token == &Token::CurlyL).is_none() {
             return Err(anyhow!("Error parsing typedef: missing \'{{\'"));
         }
 
         let mut fields = HashMap::new();
-        while lexer.peek_and(|token| token != Token::CurlyR) {
+        while lexer.peek_and(|token| token != &Token::CurlyR) {
             let (ident, ident_type) = parse_parameter(lexer)?;
             if lexer
-                .consume_if(|token| token == Token::Semicolon)
+                .consume_if(|token| token == &Token::Semicolon)
                 .is_none()
             {
                 return Err(anyhow!("Error parsing typedef: missing \';\'"));
             }
 
             if let Token::Identifier(name) = ident
-                && fields.contains_key(&name)
+                && !fields.contains_key(&name)
             {
                 fields.insert(name, ident_type);
             } else {
                 return Err(anyhow!("Error parsing typedef: duplicate field name"));
             }
         }
-        if !lexer.consume_if(|token| token == Token::CurlyR).is_none() {
+        if !lexer.consume_if(|token| token == &Token::CurlyR).is_none() {
             return Err(anyhow!("Error parsing typedef: missing \'}}\'"));
         }
 
@@ -52,7 +52,7 @@ impl Parser for StructTypedef {
 
 impl Parser for Function {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if lexer.consume_if(|token| token == Token::Fn).is_none() {
+        if lexer.consume_if(|token| token == &Token::Fn).is_none() {
             return Err(anyhow!("Error parsing function: missing \"fn\""));
         }
 
@@ -66,15 +66,15 @@ impl Parser for Function {
             ));
         };
 
-        if lexer.consume_if(|token| token == Token::ParenL).is_none() {
+        if lexer.consume_if(|token| token == &Token::ParenL).is_none() {
             return Err(anyhow!("Error parsing function: missing \'(\'"));
         }
 
         let mut parameters = HashMap::new();
-        while lexer.peek_and(|token| token == Token::ParenR) {
+        while lexer.peek_and(|token| token != &Token::ParenR) {
             let (ident, ident_type) = parse_parameter(lexer)?;
             if let Token::Identifier(name) = ident
-                && parameters.contains_key(&name)
+                && !parameters.contains_key(&name)
             {
                 parameters.insert(name, ident_type);
             } else {
@@ -83,10 +83,11 @@ impl Parser for Function {
                 ));
             }
 
-            let _ = lexer.consume_if(|token| token == Token::Comma);
+            let _ = lexer.consume_if(|token| token == &Token::Comma);
         }
+        let _ = lexer.next();
 
-        let return_type = if lexer.consume_if(|token| token == Token::Colon).is_some() {
+        let return_type = if lexer.consume_if(|token| token == &Token::Colon).is_some() {
             match lexer.next() {
                 Token::Identifier(type_name) => match type_name.as_str() {
                     "i32" => Some(ast::Type::Integer32),
@@ -115,7 +116,7 @@ impl Parser for Function {
 
 impl Parser for Declaration {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if lexer.consume_if(|token| token == Token::Let).is_none() {
+        if lexer.consume_if(|token| token == &Token::Let).is_none() {
             return Err(anyhow!("Error parsing declaration: missing \"let\""));
         }
 
@@ -129,7 +130,7 @@ impl Parser for Declaration {
             ));
         };
 
-        let declaration_type = if lexer.peek_and(|token| token == Token::Colon) {
+        let declaration_type = if lexer.peek_and(|token| token == &Token::Colon) {
             let _ = lexer.next();
             match lexer.next() {
                 Token::Identifier(type_name) => match type_name.as_str() {
@@ -145,7 +146,7 @@ impl Parser for Declaration {
             None
         };
 
-        let expression = if lexer.peek_and(|token| token == Token::Equal) {
+        let expression = if lexer.peek_and(|token| token == &Token::Equal) {
             let _ = lexer.next();
             Some(Or::parse(lexer)?)
         } else {
@@ -159,7 +160,7 @@ impl Parser for Declaration {
         }
 
         if lexer
-            .consume_if(|token| token == Token::Semicolon)
+            .consume_if(|token| token == &Token::Semicolon)
             .is_none()
         {
             return Err(anyhow!("Error parsing declaration: missing \";\""));

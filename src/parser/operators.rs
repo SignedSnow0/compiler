@@ -9,7 +9,7 @@ impl Parser for Or {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut left = And::parse(lexer)?;
         while lexer
-            .consume_if(|token| token == Token::LogicalOr)
+            .consume_if(|token| token == &Token::LogicalOr)
             .is_some()
         {
             let right = And::parse(lexer)?;
@@ -24,7 +24,7 @@ impl Parser for And {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut left = Equality::parse(lexer)?;
         while lexer
-            .consume_if(|token| token == Token::LogicalAnd)
+            .consume_if(|token| token == &Token::LogicalAnd)
             .is_some()
         {
             let right = Equality::parse(lexer)?;
@@ -39,7 +39,7 @@ impl Parser for Equality {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut left = Relation::parse(lexer)?;
         while let Some(token) =
-            lexer.consume_if(|token| token == Token::LogicalEqual || token == Token::NotEqual)
+            lexer.consume_if(|token| token == &Token::LogicalEqual || token == &Token::NotEqual)
         {
             match token {
                 Token::LogicalEqual => {
@@ -67,10 +67,10 @@ impl Parser for Relation {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut left = Expression::parse(lexer)?;
         while let Some(token) = lexer.consume_if(|token| {
-            token == Token::Lesser
-                || token == Token::LesserEqual
-                || token == Token::Greater
-                || token == Token::GreaterEqual
+            token == &Token::Lesser
+                || token == &Token::LesserEqual
+                || token == &Token::Greater
+                || token == &Token::GreaterEqual
         }) {
             match token {
                 Token::Lesser => {
@@ -106,7 +106,7 @@ impl Parser for Expression {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut left = Term::parse(lexer)?;
         while let Some(token) =
-            lexer.consume_if(|token| token == Token::Plus || token == Token::Minus)
+            lexer.consume_if(|token| token == &Token::Plus || token == &Token::Minus)
         {
             match token {
                 Token::Plus => {
@@ -134,7 +134,7 @@ impl Parser for Term {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut left = Factor::parse(lexer)?;
         while let Some(token) =
-            lexer.consume_if(|token| token == Token::Multiplication || token == Token::Division)
+            lexer.consume_if(|token| token == &Token::Multiplication || token == &Token::Division)
         {
             match token {
                 Token::Multiplication => {
@@ -160,35 +160,34 @@ impl Parser for Term {
 
 impl Parser for Factor {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
-        if lexer.consume_if(|token| token == Token::ParenL).is_some() {
+        if lexer.consume_if(|token| token == &Token::ParenL).is_some() {
             let expression = Or::parse(lexer);
-            if lexer.consume_if(|token| token == Token::ParenR).is_none() {
+            if lexer.consume_if(|token| token == &Token::ParenR).is_none() {
                 return Err(anyhow!("Failed to parse expression: missing \")\""));
             }
 
             return expression;
         }
 
-        if let Some(token) = lexer.consume_if(|token| token.is_identifier() || token.is_number()) {
-            match token {
-                Token::Identifier(value) => {
-                    if lexer.peek_and(|token| token == Token::ParenL) {
-                        FunctionCall::parse(lexer)
-                    } else {
-                        Ok(ast::Identifier::new(value))
-                    }
+        match lexer.peek() {
+            Token::Identifier(value) => {
+                if lexer.peek_and_n(2, |token| token == &Token::ParenL) {
+                    FunctionCall::parse(lexer)
+                } else {
+                    let ident = ast::Identifier::new(value.to_string());
+                    let _ = lexer.next();
+                    Ok(ident)
                 }
-                Token::Number(value) => Ok(ast::Integer::new(value.parse()?)),
-                _ => Err(anyhow!(
-                    "Failed to parse expression: unexpected identifier \"{:?}\"",
-                    token
-                )),
             }
-        } else {
-            Err(anyhow!(
+            Token::Number(value) => {
+                let integer = ast::Integer::new(value.parse()?);
+                let _ = lexer.next();
+                Ok(integer)
+            }
+            _ => Err(anyhow!(
                 "Failed to parse expression: unexpected identifier \"{:?}\"",
                 lexer.peek()
-            ))
+            )),
         }
     }
 }

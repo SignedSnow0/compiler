@@ -97,7 +97,7 @@ struct MemberAccess;
 impl Parser for Program {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
         let mut program = ast::Program::new();
-        while lexer.peek() != Token::EOF {
+        while lexer.peek() != &Token::EOF {
             match lexer.peek() {
                 Token::Let => program.add_node(Declaration::parse(lexer)?),
                 Token::Fn => program.add_node(Function::parse(lexer)?),
