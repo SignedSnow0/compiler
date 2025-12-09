@@ -1,5 +1,5 @@
 use crate::{
-    ast,
+    ast::{self, AstNode, LiteralAstNode},
     lexer::{Lexer, Token},
 };
 use anyhow::{Result, anyhow};
@@ -23,6 +23,7 @@ pub fn parse_parameter(lexer: &mut Lexer) -> Result<(Token, ast::Type)> {
         match ident_type.as_str() {
             "i32" => ast::Type::Integer32,
             "b8" => ast::Type::Boolean8,
+            "c8" => ast::Type::Char8,
             _ => {
                 return Err(anyhow!(
                     "Failed to parse function parameter: unexpected identifier type"
@@ -36,6 +37,28 @@ pub fn parse_parameter(lexer: &mut Lexer) -> Result<(Token, ast::Type)> {
     };
 
     Ok((ident, ident_type))
+}
+
+pub fn parse_char_lit(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {
+    if lexer.consume_if(|token| token == &Token::Quote).is_none() {
+        return Err(anyhow!("Failed to parse character literal: missing \"\'\""));
+    }
+
+    let character = if let Some(token) = lexer.consume_if(|token| token.is_identifier())
+        && let Token::Identifier(character) = token
+    {
+        character.chars().last().unwrap()
+    } else {
+        return Err(anyhow!(
+            "Failed to parse character literal: invalid character"
+        ));
+    };
+
+    if lexer.consume_if(|token| token == &Token::Quote).is_none() {
+        return Err(anyhow!("Failed to parse character literal: missing \"\'\""));
+    }
+
+    Ok(ast::Character::new(character))
 }
 
 #[cfg(test)]

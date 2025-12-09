@@ -259,6 +259,7 @@ impl Context {
     }
 }
 
+#[derive(Debug)]
 pub enum Expression {
     Variable(String),
     Application(Box<Expression>, Box<Expression>),

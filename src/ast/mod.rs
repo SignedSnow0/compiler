@@ -142,10 +142,15 @@ pub struct Integer {
     pub value: i32,
 }
 
+pub struct Character {
+    pub value: char,
+}
+
 #[derive(PartialEq, Eq, Debug)]
 pub enum Type {
     Integer32,
     Boolean8,
+    Char8,
     Custom(String),
 }
 

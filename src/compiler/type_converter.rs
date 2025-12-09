@@ -31,6 +31,14 @@ impl TypeConverter {
             )),
         );
         primitive_mappings.insert(
+            "c8_lit".to_string(),
+            PolymorphicType::MonomorphicType(MonomorphicType::FunctionApplication(
+                "c8".to_string(),
+                vec![],
+            )),
+        );
+
+        primitive_mappings.insert(
             "binary_i32_to_i32".to_string(),
             PolymorphicType::MonomorphicType(MonomorphicType::FunctionApplication(
                 "->".to_string(),
@@ -85,6 +93,7 @@ impl TypeConverter {
                 match name.as_str() {
                     "i32" => Ok(ast::Type::Integer32),
                     "b8" => Ok(ast::Type::Boolean8),
+                    "c8" => Ok(ast::Type::Char8),
                     custom_name => Ok(ast::Type::Custom(custom_name.to_string())),
                 }
             }
@@ -92,6 +101,15 @@ impl TypeConverter {
                 "Cannot convert type variable to AST type: {:?}",
                 mono_type
             )),
+        }
+    }
+
+    fn type_to_name(&self, ast_type: &ast::Type) -> String {
+        match ast_type {
+            ast::Type::Integer32 => "i32".to_string(),
+            ast::Type::Boolean8 => "i8".to_string(),
+            ast::Type::Char8 => "c8".to_string(),
+            ast::Type::Custom(name) => name.clone(),
         }
     }
 }
@@ -209,6 +227,12 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
+    fn visit_char(&mut self, _node: &mut ast::Character) -> Result<()> {
+        self.expression.push(*self.primitive_mapping("c8_lit")?);
+
+        Ok(())
+    }
+
     fn visit_identifier(&mut self, _node: &mut ast::Identifier) -> Result<()> {
         Ok(())
     }
@@ -223,6 +247,8 @@ impl AstVisitor for TypeConverter {
                         .ok_or(anyhow!("Error parsing declaration value"))?
                 };
 
+                //println!("Expression for \"{}\": {:?}", node.name, expr);
+
                 let mono_type = {
                     let mono_type = self.generator.generate_mono();
                     let sub = m(&self.context, &expr, &mono_type, &mut self.generator).unwrap();
@@ -230,6 +256,9 @@ impl AstVisitor for TypeConverter {
                 };
 
                 let inferred_type = self.mono_to_type(&mono_type)?;
+
+                //println!("Inferred type for \"{}\": {:?}", node.name, inferred_type);
+
                 if &inferred_type == declared_type {
                     Ok(())
                 } else {
@@ -249,6 +278,8 @@ impl AstVisitor for TypeConverter {
                         .ok_or(anyhow!("Error parsing declaration value"))?
                 };
 
+                //println!("Expression for \"{}\": {:?}", node.name, expr);
+
                 let mono_type = {
                     let mono_type = self.generator.generate_mono();
                     let sub = m(&self.context, &expr, &mono_type, &mut self.generator).unwrap();
@@ -257,11 +288,11 @@ impl AstVisitor for TypeConverter {
 
                 let ast_type = self.mono_to_type(&mono_type)?;
 
-                println!("Inferred type for declaration {}: {ast_type:?}", node.name);
+                //println!("Inferred type for \"{}\": {:?}", node.name, ast_type);
 
                 Ok(())
             }
-            (None, Some(declared_type)) => Ok(()),
+            (None, Some(_declared_type)) => Ok(()),
             (None, None) => Err(anyhow!(
                 "Declaration must have either a type annotation or an initial value"
             )),
@@ -278,6 +309,41 @@ impl AstVisitor for TypeConverter {
 
     fn visit_function(&mut self, node: &mut ast::Function) -> Result<()> {
         node.body.accept(self)?;
+
+        let return_type = if let Some(return_type) = &node.return_type {
+            MonomorphicType::FunctionApplication(self.type_to_name(return_type), vec![])
+        } else {
+            return Ok(());
+        };
+
+        if node.parameters.is_empty() {
+            return Ok(());
+        }
+
+        let mut function_type = {
+            let (_, parameter_type) = node.parameters.iter().next().unwrap();
+            let parameter_type =
+                MonomorphicType::FunctionApplication(self.type_to_name(parameter_type), vec![]);
+
+            MonomorphicType::FunctionApplication(
+                "->".to_string(),
+                vec![parameter_type, return_type],
+            )
+        };
+
+        for (_, parameter_type) in node.parameters.iter().skip(1) {
+            let parameter_type =
+                MonomorphicType::FunctionApplication(self.type_to_name(parameter_type), vec![]);
+            function_type = MonomorphicType::FunctionApplication(
+                "->".to_string(),
+                vec![parameter_type, function_type],
+            );
+        }
+
+        let function_type = PolymorphicType::MonomorphicType(function_type);
+        let mut mapping = HashMap::new();
+        mapping.insert(node.name.clone(), function_type);
+        self.context = self.context.extend(mapping);
 
         Ok(())
     }
@@ -301,7 +367,23 @@ impl AstVisitor for TypeConverter {
         Ok(())
     }
 
-    fn visit_function_call(&mut self, _node: &mut ast::FunctionCall) -> Result<()> {
+    fn visit_function_call(&mut self, node: &mut ast::FunctionCall) -> Result<()> {
+        let mut function_expression = self.primitive_mapping(&node.name)?;
+        for argument in &mut node.arguments {
+            argument.accept(self)?;
+            let expression = self
+                .expression
+                .pop()
+                .ok_or(anyhow!("Error parsing function call: missing argument"))?;
+
+            function_expression = Box::new(Expression::Application(
+                function_expression,
+                Box::new(expression),
+            ));
+        }
+
+        self.expression.push(*function_expression);
+
         Ok(())
     }
 

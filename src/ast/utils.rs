@@ -1,5 +1,5 @@
 use crate::{
-    ast::{AstNode, Identifier, Integer, LiteralAstNode},
+    ast::{AstNode, Character, Identifier, Integer, LiteralAstNode},
     compiler::AstVisitor,
 };
 use anyhow::Result;
@@ -28,5 +28,20 @@ impl LiteralAstNode<i32> for Integer {
 impl AstNode for Integer {
     fn accept(&mut self, visitor: &mut dyn AstVisitor) -> Result<()> {
         visitor.visit_integer(self)
+    }
+}
+
+impl LiteralAstNode<char> for Character {
+    fn new(value: char) -> Box<Character>
+    where
+        Self: Sized,
+    {
+        Box::new(Self { value })
+    }
+}
+
+impl AstNode for Character {
+    fn accept(&mut self, visitor: &mut dyn AstVisitor) -> Result<()> {
+        visitor.visit_char(self)
     }
 }

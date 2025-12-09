@@ -1,7 +1,7 @@
 use crate::ast::{
-    Addition, And, Assignment, AstNode, Block, Declaration, Division, Equality, Function,
-    FunctionCall, Greater, GreaterEqual, Identifier, If, Inequality, Integer, Lesser, LesserEqual,
-    Multiplication, Or, Program, Return, StructTypedef, Subtraction, Type, While,
+    Addition, And, Assignment, AstNode, Block, Character, Declaration, Division, Equality,
+    Function, FunctionCall, Greater, GreaterEqual, Identifier, If, Inequality, Integer, Lesser,
+    LesserEqual, Multiplication, Or, Program, Return, StructTypedef, Subtraction, Type, While,
 };
 use anyhow::Result;
 use std::fmt::Write;
@@ -36,6 +36,7 @@ pub trait AstVisitor {
     fn visit_lesser_equal(&mut self, node: &mut LesserEqual) -> Result<()>;
     fn visit_assignment(&mut self, node: &mut Assignment) -> Result<()>;
     fn visit_typedef(&mut self, node: &mut StructTypedef) -> Result<()>;
+    fn visit_char(&mut self, node: &mut Character) -> Result<()>;
 }
 
 pub struct AstWriter {
@@ -116,6 +117,13 @@ impl AstVisitor for AstWriter {
         Ok(())
     }
 
+    fn visit_char(&mut self, node: &mut Character) -> Result<()> {
+        self.write("Char(")?;
+        self.write(&node.value.to_string())?;
+        self.write(")")?;
+        Ok(())
+    }
+
     fn visit_identifier(&mut self, node: &mut Identifier) -> Result<()> {
         self.write("Identifier(")?;
         self.write(&node.name)?;
@@ -129,6 +137,7 @@ impl AstVisitor for AstWriter {
                 match t {
                     Type::Integer32 => "i32",
                     Type::Boolean8 => "b8",
+                    Type::Char8 => "c8",
                     Type::Custom(name) => name.as_str(),
                 }
             } else {
@@ -174,6 +183,7 @@ impl AstVisitor for AstWriter {
             let type_name = match param {
                 Type::Integer32 => "i32",
                 Type::Boolean8 => "b8",
+                Type::Char8 => "c8",
                 Type::Custom(custom_name) => custom_name.as_str(),
             };
             self.write("(")?;
@@ -189,6 +199,7 @@ impl AstVisitor for AstWriter {
             let return_type = match &return_type {
                 Type::Integer32 => "i32",
                 Type::Boolean8 => "b8",
+                Type::Char8 => "c8",
                 Type::Custom(custom_name) => custom_name.as_str(),
             };
 
@@ -337,6 +348,7 @@ impl AstVisitor for AstWriter {
             let f_type = match f_type {
                 Type::Integer32 => "i32",
                 Type::Boolean8 => "b8",
+                Type::Char8 => "c8",
                 Type::Custom(custom_name) => custom_name.as_str(),
             };
             self.write("(")?;

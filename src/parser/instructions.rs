@@ -3,6 +3,7 @@ use crate::{
     lexer::{Lexer, Token},
     parser::{
         Assignment, Block, Declaration, FunctionCall, If, Instruction, Or, Parser, Return, While,
+        utils::parse_char_lit,
     },
 };
 use anyhow::{Result, anyhow};

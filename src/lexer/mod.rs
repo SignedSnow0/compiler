@@ -15,6 +15,8 @@ pub enum Token {
     Semicolon,
     Colon,
     Comma,
+    Quote,
+    DoubleQuote,
 
     Plus,
     Minus,
@@ -144,6 +146,8 @@ impl Lexer {
             '/' => Token::Division,
             '%' => Token::Mod,
             ',' => Token::Comma,
+            '\'' => Token::Quote,
+            '\"' => Token::DoubleQuote,
             '=' => {
                 if source.last().is_some_and(|c| *c == '=') {
                     source.pop();

@@ -79,6 +79,7 @@ struct Term;
 //           | <identifier> TODO: stesso starter set
 //           | <member_access>
 //           | <function_call>
+//           | <charLit>
 //           | "("<or>")"
 struct Factor;
 
@@ -88,11 +89,15 @@ struct FunctionCall;
 // <member_access> := <identifier>"."<identifier>
 struct MemberAccess;
 
+// <charLit> := "'"<char>"'"
+
 // <parameter> := <identifier>":"<type>
 
 // <identifier> := [a-zA-Z_][a-zA-Z0-9_]*
 
-// <type> := "int"
+// <type> := "i32"
+//         | "b8"
+//         | "c8"
 
 impl Parser for Program {
     fn parse(lexer: &mut Lexer) -> Result<Box<dyn AstNode>> {

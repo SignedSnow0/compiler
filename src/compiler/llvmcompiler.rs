@@ -202,6 +202,10 @@ impl AstVisitor for LlvmCompiler<'_> {
         Ok(())
     }
 
+    fn visit_char(&mut self, node: &mut Character) -> Result<()> {
+        Ok(())
+    }
+
     fn visit_identifier(&mut self, node: &mut Identifier) -> Result<()> {
         let function_context = match &self.current_function {
             Some(f) => f,

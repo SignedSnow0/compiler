@@ -1,7 +1,10 @@
 use crate::{
     ast::{self, AstNode, BinaryAstNode, LiteralAstNode},
     lexer::{Lexer, Token},
-    parser::{And, Equality, Expression, Factor, FunctionCall, Or, Parser, Relation, Term},
+    parser::{
+        And, Equality, Expression, Factor, FunctionCall, Or, Parser, Relation, Term,
+        utils::parse_char_lit,
+    },
 };
 use anyhow::{Result, anyhow};
 
@@ -184,6 +187,7 @@ impl Parser for Factor {
                 let _ = lexer.next();
                 Ok(integer)
             }
+            Token::Quote => parse_char_lit(lexer),
             _ => Err(anyhow!(
                 "Failed to parse expression: unexpected identifier \"{:?}\"",
                 lexer.peek()

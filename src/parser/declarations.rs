@@ -1,7 +1,10 @@
 use crate::{
     ast::{self, AstNode},
     lexer::{Lexer, Token},
-    parser::{Block, Declaration, Function, Or, Parser, StructTypedef, utils::parse_parameter},
+    parser::{
+        Block, Declaration, Function, Or, Parser, StructTypedef,
+        utils::{parse_char_lit, parse_parameter},
+    },
 };
 use anyhow::{Result, anyhow};
 use std::collections::HashMap;
@@ -92,6 +95,7 @@ impl Parser for Function {
                 Token::Identifier(type_name) => match type_name.as_str() {
                     "i32" => Some(ast::Type::Integer32),
                     "b8" => Some(ast::Type::Boolean8),
+                    "c8" => Some(ast::Type::Char8),
                     _ => {
                         return Err(anyhow!(
                             "Error parsing function declaration: invalid return type"
@@ -136,6 +140,7 @@ impl Parser for Declaration {
                 Token::Identifier(type_name) => match type_name.as_str() {
                     "i32" => Some(ast::Type::Integer32),
                     "b8" => Some(ast::Type::Boolean8),
+                    "c8" => Some(ast::Type::Char8),
                     _ => {
                         return Err(anyhow!("Error parsing variable declaration: invalid type"));
                     }
